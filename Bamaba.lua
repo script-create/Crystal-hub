@@ -3783,6 +3783,14 @@ do
         Icon = 'eye',
     })
 
+    -- Create visible UI before optional runtime hooks. This prevents one
+    -- client-side visual hook from making both Visuals and later Main
+    -- controls appear empty if Roblox changes an event/API at runtime.
+    VisualsTab:Paragraph({
+        Title = 'CrystalHub Visuals',
+        Content = 'Visual controls are loaded below.',
+    })
+
     local VisualsPlayers = game:GetService('Players')
     local VisualsRunService = game:GetService('RunService')
     local VisualsLighting = game:GetService('Lighting')
@@ -4044,17 +4052,25 @@ do
     end
 
     -- Player lifecycle: refresh/rebuild instead of leaving stale ESP objects.
-    VisualsPlayers.PlayerRemoving:Connect(removePlayerESP)
-    VisualsPlayers.PlayerAdded:Connect(function(player)
-        player.CharacterAdded:Connect(function()
-            task.wait(0.2)
-            removePlayerESP(player)
+    -- Keep optional hooks isolated so a client-version-specific event issue
+    -- cannot stop the rest of CrystalHub (especially Main) from loading.
+    pcall(function()
+        VisualsPlayers.PlayerRemoving:Connect(removePlayerESP)
+        VisualsPlayers.PlayerAdded:Connect(function(player)
+            player.CharacterAdded:Connect(function()
+                task.wait(0.2)
+                removePlayerESP(player)
+            end)
         end)
     end)
 
-    VisualsLocalPlayer.CharacterAdded:Connect(function()
-        task.wait(0.2)
-        removeAllPlayerESP()
+    pcall(function()
+        if VisualsLocalPlayer then
+            VisualsLocalPlayer.CharacterAdded:Connect(function()
+                task.wait(0.2)
+                removeAllPlayerESP()
+            end)
+        end
     end)
 
     -- Put all ESP controls in the existing ESP tab.
@@ -4500,44 +4516,50 @@ do
     })
 
     -- Character respawn: restore old objects, then re-apply enabled visuals.
-    VisualsLocalPlayer.CharacterAdded:Connect(function(character)
-        table.clear(savedCharacterAppearance)
-        table.clear(savedToolAppearance)
+    pcall(function()
+        if VisualsLocalPlayer then
+            VisualsLocalPlayer.CharacterAdded:Connect(function(character)
+                table.clear(savedCharacterAppearance)
+                table.clear(savedToolAppearance)
 
-        task.wait(0.35)
+                task.wait(0.35)
 
-        if CHVisuals.Self.CharacterChams then
-            applyCharacterChams()
-        end
+                if CHVisuals.Self.CharacterChams then
+                    applyCharacterChams()
+                end
 
-        if CHVisuals.Self.Aura then
-            updateAura()
+                if CHVisuals.Self.Aura then
+                    updateAura()
+                end
+            end)
         end
     end)
 
     -- One update loop keeps all visual state synchronized and prevents
     -- several independent Heartbeat/RenderStepped loops from fighting.
-    VisualsRunService.RenderStepped:Connect(function()
-        updatePlayerESP()
+    pcall(function()
+        VisualsRunService.RenderStepped:Connect(function()
+            updatePlayerESP()
 
-        if CHVisuals.World.Enabled then
-            VisualsLighting.Ambient = CHVisuals.World.Ambient
-            VisualsLighting.OutdoorAmbient = CHVisuals.World.OutdoorAmbient
-            VisualsLighting.FogColor = CHVisuals.World.FogColor
-            VisualsLighting.FogStart = math.min(CHVisuals.World.FogStart, CHVisuals.World.FogEnd - 1)
-            VisualsLighting.FogEnd = math.max(CHVisuals.World.FogEnd, CHVisuals.World.FogStart + 1)
-            VisualsLighting.Brightness = CHVisuals.World.Brightness
-            VisualsLighting.ClockTime = CHVisuals.World.ClockTime
-            VisualsLighting.ExposureCompensation = CHVisuals.World.Exposure
-        end
+            if CHVisuals.World.Enabled then
+                VisualsLighting.Ambient = CHVisuals.World.Ambient
+                VisualsLighting.OutdoorAmbient = CHVisuals.World.OutdoorAmbient
+                VisualsLighting.FogColor = CHVisuals.World.FogColor
+                VisualsLighting.FogStart = math.min(CHVisuals.World.FogStart, CHVisuals.World.FogEnd - 1)
+                VisualsLighting.FogEnd = math.max(CHVisuals.World.FogEnd, CHVisuals.World.FogStart + 1)
+                VisualsLighting.Brightness = CHVisuals.World.Brightness
+                VisualsLighting.ClockTime = CHVisuals.World.ClockTime
+                VisualsLighting.ExposureCompensation = CHVisuals.World.Exposure
+            end
 
-        if CHVisuals.Self.CharacterChams then
-            applyCharacterChams()
-        end
+            if CHVisuals.Self.CharacterChams then
+                applyCharacterChams()
+            end
 
-        if CHVisuals.Self.ToolMaterial then
-            updateToolMaterial()
-        end
+            if CHVisuals.Self.ToolMaterial then
+                updateToolMaterial()
+            end
+        end)
     end)
 
 
