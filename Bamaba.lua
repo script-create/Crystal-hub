@@ -33,7 +33,7 @@ do
                     n3 = 70
                     u15 = false
                     u16 = false
-                    u17 = false
+                    u17 = true
                     v18 = loadstring(game:HttpGet('https://raw.githubusercontent.com/Footagesus/WindUI/refs/heads/main/dist/main.lua'))()
 
                     v18:SetTheme('Crimson')
@@ -751,11 +751,11 @@ do
                             t2 = {}
                             n4 = 0
                             t3 = {
-                                Murderer = false,
-                                Sheriff = false,
-                                Hero = false,
-                                Innocent = false,
-                                Self = false,
+                                Murderer = true,
+                                Sheriff = true,
+                                Hero = true,
+                                Innocent = true,
+                                Self = true,
                             }
                             t4 = {
                                 Murderer = Color3.fromRGB(255, 40, 40),
@@ -2394,10 +2394,16 @@ do
                 if p45 then
                     u227('GoldBomb', u228.GoldBomb, u229, Color3.fromRGB(255, 215, 0), 'GOLD\nJUMP')
                     u226.GoldBomb.btn.MouseButton1Click:Connect(function()
+                        if not u9 then
+                            u231('GoldBomb', true)
+
+                            return
+                        end
+
                         u230:Notify({
                             Title = 'CrystalHub',
-                            Content = 'Gold button ready.',
-                            Duration = 2,
+                            Content = tostring('Gold Bomb on cooldown.'),
+                            Duration = 3,
                             Icon = 'bell',
                         })
                     end)
@@ -2422,10 +2428,16 @@ do
                 if p46 then
                     u234('NormalBomb', u235.NormalBomb, u236, Color3.fromRGB(0, 170, 255), 'NORMAL\nJUMP')
                     u233.NormalBomb.btn.MouseButton1Click:Connect(function()
+                        if not u10 then
+                            u238('FakeBomb', false)
+
+                            return
+                        end
+
                         u237:Notify({
                             Title = 'CrystalHub',
-                            Content = 'Bomb button ready.',
-                            Duration = 2,
+                            Content = tostring('Normal Bomb on cooldown.'),
+                            Duration = 3,
                             Icon = 'bell',
                         })
                     end)
@@ -2450,14 +2462,7 @@ do
                 local v769 = u241('Shoot', u242.Shoot, u243, Color3.fromRGB(255, 255, 255), 'SHOOT')
 
                 u222(v769, 5159914132)
-                v769.btn.MouseButton1Click:Connect(function()
-                    v18:Notify({
-                        Title = 'CrystalHub',
-                        Content = 'Shoot button ready.',
-                        Duration = 2,
-                        Icon = 'bell',
-                    })
-                end)
+                v769.btn.MouseButton1Click:Connect(u98)
 
                 return
             end
@@ -2976,9 +2981,9 @@ do
             AutoFarmEnabled = false,
             FarmMode = "Underground",
             TweenSpeed = 25,
-            AutoReset = false,
-            AvoidMurder = false,
-            AntiAfkEnabled = false,
+            AutoReset = true,
+            AvoidMurder = true,
+            AntiAfkEnabled = true,
             AntiAfkInterval = 120,
             UndergroundOffset = 4,
             MaxDistance = 600,
@@ -3787,10 +3792,10 @@ do
         ESP = {
             Enabled = false,
             Distance = 2500,
-            Box = false,
-            Names = false,
-            Health = false,
-            DistanceText = false,
+            Box = true,
+            Names = true,
+            Health = true,
+            DistanceText = true,
             Highlight = false,
             BoxColor = Color3.fromRGB(155, 125, 175),
             NameColor = Color3.fromRGB(255, 255, 255),
@@ -4080,7 +4085,7 @@ do
 
     v302:Toggle({
         Title = 'ESP Boxes',
-        Default = false,
+        Default = true,
         Callback = function(value)
             CHVisuals.ESP.Box = value
         end,
@@ -4096,7 +4101,7 @@ do
 
     v302:Toggle({
         Title = 'ESP Names',
-        Default = false,
+        Default = true,
         Callback = function(value)
             CHVisuals.ESP.Names = value
         end,
@@ -4112,7 +4117,7 @@ do
 
     v302:Toggle({
         Title = 'ESP Health',
-        Default = false,
+        Default = true,
         Callback = function(value)
             CHVisuals.ESP.Health = value
         end,
@@ -4136,7 +4141,7 @@ do
 
     v302:Toggle({
         Title = 'ESP Distance',
-        Default = false,
+        Default = true,
         Callback = function(value)
             CHVisuals.ESP.DistanceText = value
         end,
@@ -5847,7 +5852,7 @@ v302:Divider()
 
 local t41 = {
     Title = 'Show Murderer',
-    Default = false,
+    Default = true,
 }
 local u341 = t3
 
@@ -5859,7 +5864,7 @@ v302:Toggle(t41)
 
 local t42 = {
     Title = 'Show Sheriff',
-    Default = false,
+    Default = true,
 }
 local u343 = t3
 
@@ -5871,7 +5876,7 @@ v302:Toggle(t42)
 
 local t43 = {
     Title = 'Show Hero',
-    Default = false,
+    Default = true,
 }
 local u345 = t3
 
@@ -5883,7 +5888,7 @@ v302:Toggle(t43)
 
 local t44 = {
     Title = 'Show Innocents',
-    Default = false,
+    Default = true,
 }
 local u347 = t3
 
@@ -5895,7 +5900,7 @@ v302:Toggle(t44)
 
 local t45 = {
     Title = 'Show Self',
-    Default = false,
+    Default = true,
 }
 local u349 = t3
 
@@ -5994,6 +5999,9 @@ end
 
 v302:Colorpicker(t50)
 task.wait(0.4)
+v232(true)
+v239(true)
+v244(true)
 v18:Notify({
     Title = 'CrystalHub',
     Content = tostring('CrystalHub Ready!'),
