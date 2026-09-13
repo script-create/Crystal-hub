@@ -3768,1070 +3768,58 @@ do
         end)
     end
 
-    ----------------------------------------------------------------
-    -- CrystalHub Visuals
-    -- Imported as standalone logic:
-    --   * Player ESP -> existing ESP tab (v302)
-    --   * World / Self / Aura -> Visuals tab
-    --
-    -- No Discord invites, webhooks, HTTP requests, loadstring URLs,
-    -- or external data-sending logic is used by this block.
-    ----------------------------------------------------------------
-
+    -- Visuals tab: ready for the user's Visuals code.
     local VisualsTab = v300:Tab({
         Title = 'Visuals',
         Icon = 'eye',
     })
 
-    -- Create visible UI before optional runtime hooks. This prevents one
-    -- client-side visual hook from making both Visuals and later Main
-    -- controls appear empty if Roblox changes an event/API at runtime.
     VisualsTab:Paragraph({
         Title = 'CrystalHub Visuals',
-        Content = 'Visual controls are loaded below.',
+        Content = 'Visual functions will be added here.',
     })
 
-    local VisualsPlayers = game:GetService('Players')
-    local VisualsRunService = game:GetService('RunService')
-    local VisualsLighting = game:GetService('Lighting')
-    local VisualsLocalPlayer = VisualsPlayers.LocalPlayer
+    v301:Paragraph({
+        Title = 'Auto-Loaded Buttons',
+        Content = 'Gold Bomb, Normal Bomb and Shoot/Throw are enabled by default.',
+    })
 
-    local CHVisuals = {
-        ESP = {
-            Enabled = false,
-            Distance = 2500,
-            Box = true,
-            Names = true,
-            Health = true,
-            DistanceText = true,
-            Highlight = false,
-            BoxColor = Color3.fromRGB(155, 125, 175),
-            NameColor = Color3.fromRGB(255, 255, 255),
-            HealthFullColor = Color3.fromRGB(80, 255, 120),
-            HealthEmptyColor = Color3.fromRGB(255, 70, 70),
-            HighlightColor = Color3.fromRGB(155, 125, 175),
-        },
-        World = {
-            Enabled = false,
-            Ambient = Color3.fromRGB(80, 80, 80),
-            OutdoorAmbient = Color3.fromRGB(80, 80, 80),
-            FogColor = Color3.fromRGB(120, 120, 120),
-            FogStart = 0,
-            FogEnd = 1000,
-            Brightness = 2,
-            ClockTime = 14,
-            Exposure = 0,
-        },
-        Self = {
-            CharacterChams = false,
-            CharacterColor = Color3.fromRGB(155, 125, 175),
-            ToolMaterial = false,
-            ToolColor = Color3.fromRGB(155, 125, 175),
-            Aura = false,
-            AuraColor = Color3.fromRGB(155, 125, 175),
-        },
+    local t27 = {
+        Title = 'Show Gold Bomb',
+        Default = true,
     }
+    local u304 = v232
 
-    local espObjects = {}
-    local savedCharacterAppearance = {}
-    local savedToolAppearance = {}
-    local worldSaved = false
-    local savedWorld = {}
-
-    local function safeDestroy(obj)
-        if obj then
-            pcall(function()
-                obj:Destroy()
-            end)
-        end
+    function t27.Callback(p56)
+        u304(p56)
     end
 
-    --// ESP ---------------------------------------------------------
-    local function removePlayerESP(player)
-        local data = espObjects[player]
-        if not data then
-            return
-        end
+    v301:Toggle(t27)
 
-        safeDestroy(data.Gui)
-        safeDestroy(data.Highlight)
-        espObjects[player] = nil
-    end
-
-    local function removeAllPlayerESP()
-        for player in pairs(espObjects) do
-            removePlayerESP(player)
-        end
-    end
-
-    local function createPlayerESP(player)
-        if player == VisualsLocalPlayer then
-            return nil
-        end
-
-        local character = player.Character
-        local root = character and character:FindFirstChild('HumanoidRootPart')
-        if not root then
-            return nil
-        end
-
-        local data = espObjects[player]
-        if data and data.Gui and data.Gui.Parent then
-            return data
-        end
-
-        removePlayerESP(player)
-
-        local gui = Instance.new('BillboardGui')
-        gui.Name = 'CrystalHub_PlayerESP'
-        gui.Adornee = root
-        gui.AlwaysOnTop = true
-        gui.LightInfluence = 0
-        gui.Size = UDim2.fromOffset(150, 110)
-        gui.StudsOffset = Vector3.new(0, 0.15, 0)
-        gui.ResetOnSpawn = false
-        gui.Parent = root
-
-        local box = Instance.new('Frame')
-        box.Name = 'Box'
-        box.BackgroundTransparency = 1
-        box.BorderSizePixel = 0
-        box.AnchorPoint = Vector2.new(0.5, 0.5)
-        box.Position = UDim2.fromScale(0.5, 0.5)
-        box.Size = UDim2.fromScale(0.58, 0.78)
-        box.Parent = gui
-
-        local stroke = Instance.new('UIStroke')
-        stroke.Name = 'BoxStroke'
-        stroke.Thickness = 1
-        stroke.Parent = box
-
-        local nameLabel = Instance.new('TextLabel')
-        nameLabel.Name = 'Name'
-        nameLabel.BackgroundTransparency = 1
-        nameLabel.AnchorPoint = Vector2.new(0.5, 1)
-        nameLabel.Position = UDim2.fromScale(0.5, 0.08)
-        nameLabel.Size = UDim2.fromScale(1, 0.2)
-        nameLabel.Font = Enum.Font.GothamSemibold
-        nameLabel.TextSize = 12
-        nameLabel.TextStrokeTransparency = 0.35
-        nameLabel.Text = player.DisplayName ~= player.Name
-            and (player.DisplayName .. '  @' .. player.Name)
-            or player.Name
-        nameLabel.Parent = gui
-
-        local healthBack = Instance.new('Frame')
-        healthBack.Name = 'HealthBack'
-        healthBack.AnchorPoint = Vector2.new(1, 0.5)
-        healthBack.Position = UDim2.fromScale(0.18, 0.5)
-        healthBack.Size = UDim2.fromOffset(4, 70)
-        healthBack.BorderSizePixel = 0
-        healthBack.BackgroundTransparency = 0.15
-        healthBack.Parent = gui
-
-        local healthFill = Instance.new('Frame')
-        healthFill.Name = 'HealthFill'
-        healthFill.AnchorPoint = Vector2.new(0, 1)
-        healthFill.Position = UDim2.fromScale(0, 1)
-        healthFill.Size = UDim2.fromScale(1, 1)
-        healthFill.BorderSizePixel = 0
-        healthFill.Parent = healthBack
-
-        local distanceLabel = Instance.new('TextLabel')
-        distanceLabel.Name = 'Distance'
-        distanceLabel.BackgroundTransparency = 1
-        distanceLabel.AnchorPoint = Vector2.new(0.5, 0)
-        distanceLabel.Position = UDim2.fromScale(0.5, 0.84)
-        distanceLabel.Size = UDim2.fromScale(1, 0.16)
-        distanceLabel.Font = Enum.Font.Gotham
-        distanceLabel.TextSize = 11
-        distanceLabel.TextStrokeTransparency = 0.4
-        distanceLabel.Parent = gui
-
-        data = {
-            Gui = gui,
-            Box = box,
-            Stroke = stroke,
-            Name = nameLabel,
-            HealthBack = healthBack,
-            HealthFill = healthFill,
-            Distance = distanceLabel,
-        }
-
-        espObjects[player] = data
-        return data
-    end
-
-    local function updatePlayerESP()
-        if not CHVisuals.ESP.Enabled then
-            removeAllPlayerESP()
-            for _, player in ipairs(VisualsPlayers:GetPlayers()) do
-                if player ~= VisualsLocalPlayer and player.Character then
-                    local highlight = player.Character:FindFirstChild('CrystalHub_VisualESP')
-                    if highlight then
-                        highlight:Destroy()
-                    end
-                end
-            end
-            return
-        end
-
-        local localCharacter = VisualsLocalPlayer.Character
-        local localRoot = localCharacter and localCharacter:FindFirstChild('HumanoidRootPart')
-        if not localRoot then
-            removeAllPlayerESP()
-            return
-        end
-
-        for _, player in ipairs(VisualsPlayers:GetPlayers()) do
-            if player ~= VisualsLocalPlayer then
-                local character = player.Character
-                local humanoid = character and character:FindFirstChildOfClass('Humanoid')
-                local root = character and character:FindFirstChild('HumanoidRootPart')
-
-                if root and humanoid and humanoid.Health > 0 then
-                    local distance = (root.Position - localRoot.Position).Magnitude
-                    local data = createPlayerESP(player)
-
-                    if data then
-                        local visible = distance <= CHVisuals.ESP.Distance
-                        data.Gui.Enabled = visible
-
-                        if visible then
-                            data.Box.Visible = CHVisuals.ESP.Box
-                            data.Stroke.Color = CHVisuals.ESP.BoxColor
-                            data.Name.Visible = CHVisuals.ESP.Names
-                            data.Name.TextColor3 = CHVisuals.ESP.NameColor
-                            data.Distance.Visible = CHVisuals.ESP.DistanceText
-                            data.Distance.TextColor3 = CHVisuals.ESP.NameColor
-                            data.Distance.Text = string.format('%dm', math.floor(distance + 0.5))
-
-                            data.HealthBack.Visible = CHVisuals.ESP.Health
-                            data.HealthFill.Visible = CHVisuals.ESP.Health
-                            local ratio = math.clamp(humanoid.Health / math.max(humanoid.MaxHealth, 1), 0, 1)
-                            data.HealthFill.Size = UDim2.fromScale(1, ratio)
-                            data.HealthFill.BackgroundColor3 = CHVisuals.ESP.HealthEmptyColor:Lerp(
-                                CHVisuals.ESP.HealthFullColor,
-                                ratio
-                            )
-                        end
-                    end
-
-                    if CHVisuals.ESP.Highlight then
-                        local highlight = character:FindFirstChild('CrystalHub_VisualESP')
-                        if not highlight then
-                            highlight = Instance.new('Highlight')
-                            highlight.Name = 'CrystalHub_VisualESP'
-                            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                            highlight.FillTransparency = 0.75
-                            highlight.OutlineTransparency = 0.1
-                            highlight.Parent = character
-                        end
-                        highlight.FillColor = CHVisuals.ESP.HighlightColor
-                        highlight.Enabled = distance <= CHVisuals.ESP.Distance
-                        if data then
-                            data.Highlight = highlight
-                        end
-                    else
-                        local highlight = character:FindFirstChild('CrystalHub_VisualESP')
-                        if highlight then
-                            highlight:Destroy()
-                        end
-                    end
-                else
-                    removePlayerESP(player)
-                    if character then
-                        local highlight = character:FindFirstChild('CrystalHub_VisualESP')
-                        if highlight then
-                            highlight:Destroy()
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    -- Player lifecycle: refresh/rebuild instead of leaving stale ESP objects.
-    -- Keep optional hooks isolated so a client-version-specific event issue
-    -- cannot stop the rest of CrystalHub (especially Main) from loading.
-    pcall(function()
-        VisualsPlayers.PlayerRemoving:Connect(removePlayerESP)
-        VisualsPlayers.PlayerAdded:Connect(function(player)
-            player.CharacterAdded:Connect(function()
-                task.wait(0.2)
-                removePlayerESP(player)
-            end)
-        end)
-    end)
-
-    pcall(function()
-        if VisualsLocalPlayer then
-            VisualsLocalPlayer.CharacterAdded:Connect(function()
-                task.wait(0.2)
-                removeAllPlayerESP()
-            end)
-        end
-    end)
-
-    -- Put all ESP controls in the existing ESP tab.
-    v302:Divider()
-    v302:Paragraph({
-        Title = 'Player ESP',
-        Content = 'Standalone visual ESP. It does not use external requests or Discord/webhook code.',
-    })
-
-    v302:Toggle({
-        Title = 'Player ESP',
-        Default = false,
-        Callback = function(value)
-            CHVisuals.ESP.Enabled = value
-            if not value then
-                removeAllPlayerESP()
-            end
-        end,
-    })
-
-    v302:Slider({
-        Title = 'ESP Distance',
-        Step = 50,
-        Value = {
-            Min = 100,
-            Max = 5000,
-            Default = CHVisuals.ESP.Distance,
-        },
-        Callback = function(value)
-            value = tonumber(value)
-            if value then
-                CHVisuals.ESP.Distance = math.clamp(value, 100, 5000)
-            end
-        end,
-    })
-
-    v302:Toggle({
-        Title = 'ESP Boxes',
+    local t28 = {
+        Title = 'Show Normal Bomb',
         Default = true,
-        Callback = function(value)
-            CHVisuals.ESP.Box = value
-        end,
-    })
+    }
+    local u306 = v239
 
-    v302:ColorPicker({
-        Title = 'ESP Box Color',
-        Default = CHVisuals.ESP.BoxColor,
-        Callback = function(value)
-            CHVisuals.ESP.BoxColor = value
-        end,
-    })
+    function t28.Callback(p57)
+        u306(p57)
+    end
 
-    v302:Toggle({
-        Title = 'ESP Names',
+    v301:Toggle(t28)
+
+    local t29 = {
+        Title = 'Show Shoot/Throw',
         Default = true,
-        Callback = function(value)
-            CHVisuals.ESP.Names = value
-        end,
-    })
+    }
+    local u308 = v244
 
-    v302:ColorPicker({
-        Title = 'ESP Name Color',
-        Default = CHVisuals.ESP.NameColor,
-        Callback = function(value)
-            CHVisuals.ESP.NameColor = value
-        end,
-    })
-
-    v302:Toggle({
-        Title = 'ESP Health',
-        Default = true,
-        Callback = function(value)
-            CHVisuals.ESP.Health = value
-        end,
-    })
-
-    v302:ColorPicker({
-        Title = 'Health Full Color',
-        Default = CHVisuals.ESP.HealthFullColor,
-        Callback = function(value)
-            CHVisuals.ESP.HealthFullColor = value
-        end,
-    })
-
-    v302:ColorPicker({
-        Title = 'Health Empty Color',
-        Default = CHVisuals.ESP.HealthEmptyColor,
-        Callback = function(value)
-            CHVisuals.ESP.HealthEmptyColor = value
-        end,
-    })
-
-    v302:Toggle({
-        Title = 'ESP Distance',
-        Default = true,
-        Callback = function(value)
-            CHVisuals.ESP.DistanceText = value
-        end,
-    })
-
-    v302:Toggle({
-        Title = 'ESP Highlight',
-        Default = false,
-        Callback = function(value)
-            CHVisuals.ESP.Highlight = value
-        end,
-    })
-
-    v302:ColorPicker({
-        Title = 'ESP Highlight Color',
-        Default = CHVisuals.ESP.HighlightColor,
-        Callback = function(value)
-            CHVisuals.ESP.HighlightColor = value
-        end,
-    })
-
-    --// World -------------------------------------------------------
-    VisualsTab:Divider()
-    VisualsTab:Paragraph({
-        Title = 'World',
-        Content = 'Lighting controls with full restoration when disabled.',
-    })
-
-    VisualsTab:Toggle({
-        Title = 'Lighting Modifications',
-        Default = false,
-        Callback = function(value)
-            CHVisuals.World.Enabled = value
-
-            if value then
-                if not worldSaved then
-                    worldSaved = true
-                    savedWorld = {
-                        Ambient = VisualsLighting.Ambient,
-                        OutdoorAmbient = VisualsLighting.OutdoorAmbient,
-                        FogColor = VisualsLighting.FogColor,
-                        FogStart = VisualsLighting.FogStart,
-                        FogEnd = VisualsLighting.FogEnd,
-                        Brightness = VisualsLighting.Brightness,
-                        ClockTime = VisualsLighting.ClockTime,
-                        Exposure = VisualsLighting.ExposureCompensation,
-                    }
-                end
-            elseif worldSaved then
-                VisualsLighting.Ambient = savedWorld.Ambient
-                VisualsLighting.OutdoorAmbient = savedWorld.OutdoorAmbient
-                VisualsLighting.FogColor = savedWorld.FogColor
-                VisualsLighting.FogStart = savedWorld.FogStart
-                VisualsLighting.FogEnd = savedWorld.FogEnd
-                VisualsLighting.Brightness = savedWorld.Brightness
-                VisualsLighting.ClockTime = savedWorld.ClockTime
-                VisualsLighting.ExposureCompensation = savedWorld.Exposure
-            end
-        end,
-    })
-
-    VisualsTab:ColorPicker({
-        Title = 'Ambient Color',
-        Default = CHVisuals.World.Ambient,
-        Callback = function(value)
-            CHVisuals.World.Ambient = value
-        end,
-    })
-
-    VisualsTab:ColorPicker({
-        Title = 'Outdoor Ambient',
-        Default = CHVisuals.World.OutdoorAmbient,
-        Callback = function(value)
-            CHVisuals.World.OutdoorAmbient = value
-        end,
-    })
-
-    VisualsTab:ColorPicker({
-        Title = 'Fog Color',
-        Default = CHVisuals.World.FogColor,
-        Callback = function(value)
-            CHVisuals.World.FogColor = value
-        end,
-    })
-
-    VisualsTab:Slider({
-        Title = 'Fog Start',
-        Step = 10,
-        Value = {
-            Min = 0,
-            Max = 1000,
-            Default = CHVisuals.World.FogStart,
-        },
-        Callback = function(value)
-            CHVisuals.World.FogStart = math.clamp(tonumber(value) or 0, 0, 1000)
-        end,
-    })
-
-    VisualsTab:Slider({
-        Title = 'Fog End',
-        Step = 10,
-        Value = {
-            Min = 100,
-            Max = 5000,
-            Default = CHVisuals.World.FogEnd,
-        },
-        Callback = function(value)
-            CHVisuals.World.FogEnd = math.clamp(tonumber(value) or 1000, 100, 5000)
-        end,
-    })
-
-    VisualsTab:Slider({
-        Title = 'Brightness',
-        Step = 0.1,
-        Value = {
-            Min = 0,
-            Max = 10,
-            Default = CHVisuals.World.Brightness,
-        },
-        Callback = function(value)
-            CHVisuals.World.Brightness = math.clamp(tonumber(value) or 2, 0, 10)
-        end,
-    })
-
-    VisualsTab:Slider({
-        Title = 'Clock Time',
-        Step = 0.5,
-        Value = {
-            Min = 0,
-            Max = 24,
-            Default = CHVisuals.World.ClockTime,
-        },
-        Callback = function(value)
-            CHVisuals.World.ClockTime = math.clamp(tonumber(value) or 14, 0, 24)
-        end,
-    })
-
-    VisualsTab:Slider({
-        Title = 'Exposure',
-        Step = 0.1,
-        Value = {
-            Min = -3,
-            Max = 3,
-            Default = CHVisuals.World.Exposure,
-        },
-        Callback = function(value)
-            CHVisuals.World.Exposure = math.clamp(tonumber(value) or 0, -3, 3)
-        end,
-    })
-
-    --// Self visuals ------------------------------------------------
-    VisualsTab:Divider()
-    local function getCurrentCharacter()
-        return VisualsLocalPlayer.Character
+    function t29.Callback(p58)
+        u308(p58)
     end
 
-    local function saveCharacterAppearance(character)
-        table.clear(savedCharacterAppearance)
-        for _, obj in ipairs(character:GetDescendants()) do
-            if obj:IsA('BasePart') then
-                savedCharacterAppearance[obj] = {
-                    Material = obj.Material,
-                    Color = obj.Color,
-                }
-            end
-        end
-    end
-
-    local function applyCharacterChams()
-        local character = getCurrentCharacter()
-        if not character then
-            return
-        end
-
-        if next(savedCharacterAppearance) == nil then
-            saveCharacterAppearance(character)
-        end
-
-        for _, obj in ipairs(character:GetDescendants()) do
-            if obj:IsA('BasePart') then
-                obj.Material = Enum.Material.ForceField
-                obj.Color = CHVisuals.Self.CharacterColor
-            end
-        end
-    end
-
-    local function restoreCharacterAppearance()
-        for part, data in pairs(savedCharacterAppearance) do
-            if part and part.Parent then
-                part.Material = data.Material
-                part.Color = data.Color
-            end
-        end
-        table.clear(savedCharacterAppearance)
-    end
-
-    local function saveToolAppearance(tool)
-        table.clear(savedToolAppearance)
-        for _, obj in ipairs(tool:GetDescendants()) do
-            if obj:IsA('BasePart') then
-                savedToolAppearance[obj] = {
-                    Material = obj.Material,
-                    Color = obj.Color,
-                }
-            end
-        end
-    end
-
-    local function restoreToolAppearance()
-        for part, data in pairs(savedToolAppearance) do
-            if part and part.Parent then
-                part.Material = data.Material
-                part.Color = data.Color
-            end
-        end
-        table.clear(savedToolAppearance)
-    end
-
-    local function updateToolMaterial()
-        local character = getCurrentCharacter()
-        if not character then
-            return
-        end
-
-        local tool = character:FindFirstChildOfClass('Tool')
-        if not tool then
-            restoreToolAppearance()
-            return
-        end
-
-        if CHVisuals.Self.ToolMaterial then
-            if next(savedToolAppearance) == nil then
-                saveToolAppearance(tool)
-            end
-
-            for _, obj in ipairs(tool:GetDescendants()) do
-                if obj:IsA('BasePart') then
-                    obj.Material = Enum.Material.ForceField
-                    obj.Color = CHVisuals.Self.ToolColor
-                end
-            end
-        else
-            restoreToolAppearance()
-        end
-    end
-
-    local function removeAura()
-        local character = getCurrentCharacter()
-        if not character then
-            return
-        end
-
-        local aura = character:FindFirstChild('CrystalHub_Aura')
-        if aura then
-            aura:Destroy()
-        end
-    end
-
-    local function updateAura()
-        removeAura()
-
-        if not CHVisuals.Self.Aura then
-            return
-        end
-
-        local character = getCurrentCharacter()
-        if not character then
-            return
-        end
-
-        local aura = Instance.new('Highlight')
-        aura.Name = 'CrystalHub_Aura'
-        aura.DepthMode = Enum.HighlightDepthMode.Occluded
-        aura.FillColor = CHVisuals.Self.AuraColor
-        aura.FillTransparency = 0.78
-        aura.OutlineColor = CHVisuals.Self.AuraColor
-        aura.OutlineTransparency = 0.05
-        aura.Parent = character
-    end
-
-    VisualsTab:Paragraph({
-        Title = 'Self',
-        Content = 'Character and tool appearance. Changes are restored when disabled or after respawn.',
-    })
-
-    VisualsTab:Toggle({
-        Title = 'Character Chams',
-        Default = false,
-        Callback = function(value)
-            CHVisuals.Self.CharacterChams = value
-
-            if value then
-                applyCharacterChams()
-            else
-                restoreCharacterAppearance()
-            end
-        end,
-    })
-
-    VisualsTab:ColorPicker({
-        Title = 'Character Chams Color',
-        Default = CHVisuals.Self.CharacterColor,
-        Callback = function(value)
-            CHVisuals.Self.CharacterColor = value
-            if CHVisuals.Self.CharacterChams then
-                applyCharacterChams()
-            end
-        end,
-    })
-
-    VisualsTab:Toggle({
-        Title = 'Tool Material',
-        Default = false,
-        Callback = function(value)
-            CHVisuals.Self.ToolMaterial = value
-            if not value then
-                restoreToolAppearance()
-            end
-        end,
-    })
-
-    VisualsTab:ColorPicker({
-        Title = 'Tool Color',
-        Default = CHVisuals.Self.ToolColor,
-        Callback = function(value)
-            CHVisuals.Self.ToolColor = value
-        end,
-    })
-
-    VisualsTab:Toggle({
-        Title = 'Aura',
-        Default = false,
-        Callback = function(value)
-            CHVisuals.Self.Aura = value
-            updateAura()
-        end,
-    })
-
-    VisualsTab:ColorPicker({
-        Title = 'Aura Color',
-        Default = CHVisuals.Self.AuraColor,
-        Callback = function(value)
-            CHVisuals.Self.AuraColor = value
-            if CHVisuals.Self.Aura then
-                updateAura()
-            end
-        end,
-    })
-
-    -- Character respawn: restore old objects, then re-apply enabled visuals.
-    pcall(function()
-        if VisualsLocalPlayer then
-            VisualsLocalPlayer.CharacterAdded:Connect(function(character)
-                table.clear(savedCharacterAppearance)
-                table.clear(savedToolAppearance)
-
-                task.wait(0.35)
-
-                if CHVisuals.Self.CharacterChams then
-                    applyCharacterChams()
-                end
-
-                if CHVisuals.Self.Aura then
-                    updateAura()
-                end
-            end)
-        end
-    end)
-
-    -- One update loop keeps all visual state synchronized and prevents
-    -- several independent Heartbeat/RenderStepped loops from fighting.
-    pcall(function()
-        VisualsRunService.RenderStepped:Connect(function()
-            updatePlayerESP()
-
-            if CHVisuals.World.Enabled then
-                VisualsLighting.Ambient = CHVisuals.World.Ambient
-                VisualsLighting.OutdoorAmbient = CHVisuals.World.OutdoorAmbient
-                VisualsLighting.FogColor = CHVisuals.World.FogColor
-                VisualsLighting.FogStart = math.min(CHVisuals.World.FogStart, CHVisuals.World.FogEnd - 1)
-                VisualsLighting.FogEnd = math.max(CHVisuals.World.FogEnd, CHVisuals.World.FogStart + 1)
-                VisualsLighting.Brightness = CHVisuals.World.Brightness
-                VisualsLighting.ClockTime = CHVisuals.World.ClockTime
-                VisualsLighting.ExposureCompensation = CHVisuals.World.Exposure
-            end
-
-            if CHVisuals.Self.CharacterChams then
-                applyCharacterChams()
-            end
-
-            if CHVisuals.Self.ToolMaterial then
-                updateToolMaterial()
-            end
-        end)
-    end)
-
-
-VisualsTab:Button({
-    Title = 'Open Cursor Picker',
-    Description = 'Visual grid with spin toggle \u{2014} click to apply',
-    Callback = function()
-        local RuzCursorPicker = game.CoreGui:FindFirstChild('RuzCursorPicker')
-
-        if not RuzCursorPicker then
-            local ScreenGui = Instance.new('ScreenGui', game.CoreGui)
-
-            ScreenGui.Name = 'RuzCursorPicker'
-            ScreenGui.ResetOnSpawn = false
-            ScreenGui.DisplayOrder = 60
-
-            local Frame = Instance.new('Frame', ScreenGui)
-
-            Frame.Size = UDim2.new(0, 300, 0, 460)
-            Frame.Position = UDim2.new(0.5, -150, 0.04, 0)
-            Frame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-            Frame.BackgroundTransparency = 0.06
-            Frame.BorderSizePixel = 0
-            Instance.new('UICorner', Frame).CornerRadius = UDim.new(0, 12)
-
-            local UIStroke = Instance.new('UIStroke', Frame)
-
-            UIStroke.Color = Color3.fromRGB(220, 38, 38)
-            UIStroke.Thickness = 1.5
-
-            local TextLabel = Instance.new('TextLabel', Frame)
-
-            TextLabel.Size = UDim2.new(1, -44, 0, 38)
-            TextLabel.Position = UDim2.new(0, 12, 0, 0)
-            TextLabel.BackgroundTransparency = 1
-            TextLabel.Text = 'CrystalHub  \u{2014}  Cursor Picker'
-            TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-            TextLabel.Font = Enum.Font.GothamBold
-            TextLabel.TextSize = 14
-            TextLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-            local TextButton = Instance.new('TextButton', Frame)
-
-            TextButton.Size = UDim2.new(0, 28, 0, 28)
-            TextButton.Position = UDim2.new(1, -34, 0, 5)
-            TextButton.BackgroundColor3 = Color3.fromRGB(180, 30, 30)
-            TextButton.Text = 'X'
-            TextButton.TextColor3 = Color3.new(1, 1, 1)
-            TextButton.Font = Enum.Font.GothamBold
-            TextButton.TextSize = 13
-            Instance.new('UICorner', TextButton).CornerRadius = UDim.new(0, 6)
-
-            local MouseButton1Click = TextButton.MouseButton1Click
-            local u715 = ScreenGui
-
-            MouseButton1Click:Connect(function()
-                u715:Destroy()
-            end)
-
-            local TextBox = Instance.new('TextBox', Frame)
-
-            TextBox.Size = UDim2.new(1, -20, 0, 34)
-            TextBox.Position = UDim2.new(0, 10, 0, 44)
-            TextBox.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-            TextBox.Text = ''
-            TextBox.PlaceholderText = 'Enter custom Cursor ID, press Enter...'
-            TextBox.TextColor3 = Color3.new(1, 1, 1)
-            TextBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
-            TextBox.Font = Enum.Font.Gotham
-            TextBox.TextSize = 13
-            TextBox.ClearTextOnFocus = false
-            Instance.new('UICorner', TextBox).CornerRadius = UDim.new(0, 6)
-            Instance.new('UIStroke', TextBox).Color = Color3.fromRGB(80, 80, 80)
-
-            local FocusLost = TextBox.FocusLost
-            local u718 = TextBox
-
-            FocusLost:Connect(function(p70)
-                if p70 and u718.Text ~= '' then
-                    id = u718.Text
-
-                    if u198 and u201 then
-                        u201.Image = 'rbxassetid://' .. u718.Text
-                    end
-
-                    u209:Notify({
-                        Title = 'CrystalHub',
-                        Content = tostring('Custom cursor applied \u{2014} enable ShiftLock to see it!'),
-                        Duration = 3,
-                        Icon = 'bell',
-                    })
-
-                    u718.Text = ''
-                end
-            end)
-
-            local Frame7 = Instance.new('Frame', Frame)
-
-            Frame7.Size = UDim2.new(1, -20, 0, 30)
-            Frame7.Position = UDim2.new(0, 10, 0, 84)
-            Frame7.BackgroundTransparency = 1
-
-            local TextLabel7 = Instance.new('TextLabel', Frame7)
-
-            TextLabel7.Size = UDim2.new(1, -64, 1, 0)
-            TextLabel7.BackgroundTransparency = 1
-            TextLabel7.Text = 'Spin Crosshair'
-            TextLabel7.TextColor3 = Color3.fromRGB(200, 200, 200)
-            TextLabel7.Font = Enum.Font.GothamBold
-            TextLabel7.TextSize = 13
-            TextLabel7.TextXAlignment = Enum.TextXAlignment.Left
-
-            local TextButton7 = Instance.new('TextButton', Frame7)
-
-            TextButton7.Size = UDim2.new(0, 54, 0, 26)
-            TextButton7.Position = UDim2.new(1, -54, 0.5, -13)
-            TextButton7.BackgroundColor3 = u199 and Color3.fromRGB(30, 160, 30) or Color3.fromRGB(80, 20, 20)
-            TextButton7.Text = u199 and 'ON' or 'OFF'
-            TextButton7.TextColor3 = Color3.new(1, 1, 1)
-            TextButton7.Font = Enum.Font.GothamBold
-            TextButton7.TextSize = 12
-            Instance.new('UICorner', TextButton7).CornerRadius = UDim.new(0, 8)
-
-            local MouseButton1Click6 = TextButton7.MouseButton1Click
-            local u723 = TextButton7
-
-            MouseButton1Click6:Connect(function()
-                u199 = not u199
-                u723.BackgroundColor3 = u199 and Color3.fromRGB(30, 160, 30) or Color3.fromRGB(80, 20, 20)
-                u723.Text = u199 and 'ON' or 'OFF'
-
-                u210()
-
-                local v919 = 'Crosshair Spin: ' .. (u199 and 'ON' or 'OFF')
-
-                u209:Notify({
-                    Title = 'CrystalHub',
-                    Content = tostring(v919),
-                    Duration = 3,
-                    Icon = 'bell',
-                })
-            end)
-
-            local Frame8 = Instance.new('Frame', Frame)
-
-            Frame8.Size = UDim2.new(1, -20, 0, 1)
-            Frame8.Position = UDim2.new(0, 10, 0, 120)
-            Frame8.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-            Frame8.BorderSizePixel = 0
-
-            local ScrollingFrame = Instance.new('ScrollingFrame', Frame)
-
-            ScrollingFrame.Size = UDim2.new(1, -14, 1, -128)
-            ScrollingFrame.Position = UDim2.new(0, 7, 0, 126)
-            ScrollingFrame.BackgroundTransparency = 1
-            ScrollingFrame.BorderSizePixel = 0
-            ScrollingFrame.ScrollBarThickness = 4
-
-            local new = UDim2.new
-            local v727 = #u211 / 2
-
-            ScrollingFrame.CanvasSize = new(0, 0, 0, math.ceil(v727) * 118 + 10)
-
-            local UIGridLayout = Instance.new('UIGridLayout', ScrollingFrame)
-
-            UIGridLayout.CellSize = UDim2.new(0, 128, 0, 110)
-            UIGridLayout.CellPadding = UDim2.new(0, 8, 0, 8)
-            UIGridLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-            for i, v in ipairs(u211)do
-                local v731 = id == v.id
-                local TextButton8 = Instance.new('TextButton', ScrollingFrame)
-
-                TextButton8.Size = UDim2.new(0, 128, 0, 110)
-                TextButton8.BackgroundColor3 = v731 and Color3.fromRGB(55, 15, 15) or Color3.fromRGB(20, 20, 20)
-                TextButton8.Text = ''
-                TextButton8.AutoButtonColor = false
-                TextButton8.LayoutOrder = i
-                Instance.new('UICorner', TextButton8).CornerRadius = UDim.new(0, 8)
-
-                local UIStroke4 = Instance.new('UIStroke', TextButton8)
-
-                UIStroke4.Color = v731 and Color3.fromRGB(220, 38, 38) or Color3.fromRGB(50, 50, 50)
-                UIStroke4.Thickness = v731 and 1.8 or 1.2
-
-                local ImageLabel = Instance.new('ImageLabel', TextButton8)
-
-                ImageLabel.Size = UDim2.new(0, 58, 0, 58)
-                ImageLabel.AnchorPoint = Vector2.new(0.5, 0)
-                ImageLabel.Position = UDim2.new(0.5, 0, 0, 8)
-                ImageLabel.BackgroundTransparency = 1
-                ImageLabel.Image = 'rbxassetid://' .. v.id
-
-                local TextLabel8 = Instance.new('TextLabel', TextButton8)
-
-                TextLabel8.Size = UDim2.new(1, -6, 0, 28)
-                TextLabel8.Position = UDim2.new(0, 3, 1, -30)
-                TextLabel8.BackgroundTransparency = 1
-                TextLabel8.Text = v.name .. (v731 and ' \u{2713}' or '')
-                TextLabel8.TextColor3 = v731 and Color3.fromRGB(255, 80, 80) or Color3.fromRGB(200, 200, 200)
-                TextLabel8.Font = Enum.Font.GothamBold
-                TextLabel8.TextSize = 11
-                TextLabel8.TextWrapped = true
-
-                local MouseButton1Click7 = TextButton8.MouseButton1Click
-                local u737 = v
-                local u738 = ScreenGui
-
-                MouseButton1Click7:Connect(function()
-                    id = u737.id
-
-                    if u198 and u201 then
-                        u201.Image = 'rbxassetid://' .. u737.id
-                    end
-
-                    local v920 = 'Cursor: ' .. u737.name .. ' \u{2014} enable ShiftLock to see it!'
-
-                    u209:Notify({
-                        Title = 'CrystalHub',
-                        Content = tostring(v920),
-                        Duration = 3,
-                        Icon = 'bell',
-                    })
-                    u738:Destroy()
-                end)
-            end
-
-            u212(Frame)
-
-            return
-        end
-
-        RuzCursorPicker:Destroy()
-    end,
-})
+    v301:Toggle(t29)
 end
-
-local t27 = {
-    Title = 'Show Gold Bomb',
-    Default = true,
-}
-local u304 = v232
-
-function t27.Callback(p56)
-    u304(p56)
-end
-
-v301:Toggle(t27)
-
-local t28 = {
-    Title = 'Show Normal Bomb',
-    Default = true,
-}
-local u306 = v239
-
-function t28.Callback(p57)
-    u306(p57)
-end
-
-v301:Toggle(t28)
-
-local t29 = {
-    Title = 'Show Shoot/Throw',
-    Default = true,
-}
-local u308 = v244
-
-function t29.Callback(p58)
-    u308(p58)
-end
-
-v301:Toggle(t29)
 
 v301:Divider()
 v301:Paragraph({
@@ -5276,7 +4264,238 @@ function t31.Callback(p69)
 end
 
 v301:Toggle(t31)
+v301:Button({
+    Title = 'Open Cursor Picker',
+    Description = 'Visual grid with spin toggle \u{2014} click to apply',
+    Callback = function()
+        local RuzCursorPicker = game.CoreGui:FindFirstChild('RuzCursorPicker')
 
+        if not RuzCursorPicker then
+            local ScreenGui = Instance.new('ScreenGui', game.CoreGui)
+
+            ScreenGui.Name = 'RuzCursorPicker'
+            ScreenGui.ResetOnSpawn = false
+            ScreenGui.DisplayOrder = 60
+
+            local Frame = Instance.new('Frame', ScreenGui)
+
+            Frame.Size = UDim2.new(0, 300, 0, 460)
+            Frame.Position = UDim2.new(0.5, -150, 0.04, 0)
+            Frame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+            Frame.BackgroundTransparency = 0.06
+            Frame.BorderSizePixel = 0
+            Instance.new('UICorner', Frame).CornerRadius = UDim.new(0, 12)
+
+            local UIStroke = Instance.new('UIStroke', Frame)
+
+            UIStroke.Color = Color3.fromRGB(220, 38, 38)
+            UIStroke.Thickness = 1.5
+
+            local TextLabel = Instance.new('TextLabel', Frame)
+
+            TextLabel.Size = UDim2.new(1, -44, 0, 38)
+            TextLabel.Position = UDim2.new(0, 12, 0, 0)
+            TextLabel.BackgroundTransparency = 1
+            TextLabel.Text = 'CrystalHub  \u{2014}  Cursor Picker'
+            TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            TextLabel.Font = Enum.Font.GothamBold
+            TextLabel.TextSize = 14
+            TextLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+            local TextButton = Instance.new('TextButton', Frame)
+
+            TextButton.Size = UDim2.new(0, 28, 0, 28)
+            TextButton.Position = UDim2.new(1, -34, 0, 5)
+            TextButton.BackgroundColor3 = Color3.fromRGB(180, 30, 30)
+            TextButton.Text = 'X'
+            TextButton.TextColor3 = Color3.new(1, 1, 1)
+            TextButton.Font = Enum.Font.GothamBold
+            TextButton.TextSize = 13
+            Instance.new('UICorner', TextButton).CornerRadius = UDim.new(0, 6)
+
+            local MouseButton1Click = TextButton.MouseButton1Click
+            local u715 = ScreenGui
+
+            MouseButton1Click:Connect(function()
+                u715:Destroy()
+            end)
+
+            local TextBox = Instance.new('TextBox', Frame)
+
+            TextBox.Size = UDim2.new(1, -20, 0, 34)
+            TextBox.Position = UDim2.new(0, 10, 0, 44)
+            TextBox.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            TextBox.Text = ''
+            TextBox.PlaceholderText = 'Enter custom Cursor ID, press Enter...'
+            TextBox.TextColor3 = Color3.new(1, 1, 1)
+            TextBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
+            TextBox.Font = Enum.Font.Gotham
+            TextBox.TextSize = 13
+            TextBox.ClearTextOnFocus = false
+            Instance.new('UICorner', TextBox).CornerRadius = UDim.new(0, 6)
+            Instance.new('UIStroke', TextBox).Color = Color3.fromRGB(80, 80, 80)
+
+            local FocusLost = TextBox.FocusLost
+            local u718 = TextBox
+
+            FocusLost:Connect(function(p70)
+                if p70 and u718.Text ~= '' then
+                    id = u718.Text
+
+                    if u198 and u201 then
+                        u201.Image = 'rbxassetid://' .. u718.Text
+                    end
+
+                    u209:Notify({
+                        Title = 'CrystalHub',
+                        Content = tostring('Custom cursor applied \u{2014} enable ShiftLock to see it!'),
+                        Duration = 3,
+                        Icon = 'bell',
+                    })
+
+                    u718.Text = ''
+                end
+            end)
+
+            local Frame7 = Instance.new('Frame', Frame)
+
+            Frame7.Size = UDim2.new(1, -20, 0, 30)
+            Frame7.Position = UDim2.new(0, 10, 0, 84)
+            Frame7.BackgroundTransparency = 1
+
+            local TextLabel7 = Instance.new('TextLabel', Frame7)
+
+            TextLabel7.Size = UDim2.new(1, -64, 1, 0)
+            TextLabel7.BackgroundTransparency = 1
+            TextLabel7.Text = 'Spin Crosshair'
+            TextLabel7.TextColor3 = Color3.fromRGB(200, 200, 200)
+            TextLabel7.Font = Enum.Font.GothamBold
+            TextLabel7.TextSize = 13
+            TextLabel7.TextXAlignment = Enum.TextXAlignment.Left
+
+            local TextButton7 = Instance.new('TextButton', Frame7)
+
+            TextButton7.Size = UDim2.new(0, 54, 0, 26)
+            TextButton7.Position = UDim2.new(1, -54, 0.5, -13)
+            TextButton7.BackgroundColor3 = u199 and Color3.fromRGB(30, 160, 30) or Color3.fromRGB(80, 20, 20)
+            TextButton7.Text = u199 and 'ON' or 'OFF'
+            TextButton7.TextColor3 = Color3.new(1, 1, 1)
+            TextButton7.Font = Enum.Font.GothamBold
+            TextButton7.TextSize = 12
+            Instance.new('UICorner', TextButton7).CornerRadius = UDim.new(0, 8)
+
+            local MouseButton1Click6 = TextButton7.MouseButton1Click
+            local u723 = TextButton7
+
+            MouseButton1Click6:Connect(function()
+                u199 = not u199
+                u723.BackgroundColor3 = u199 and Color3.fromRGB(30, 160, 30) or Color3.fromRGB(80, 20, 20)
+                u723.Text = u199 and 'ON' or 'OFF'
+
+                u210()
+
+                local v919 = 'Crosshair Spin: ' .. (u199 and 'ON' or 'OFF')
+
+                u209:Notify({
+                    Title = 'CrystalHub',
+                    Content = tostring(v919),
+                    Duration = 3,
+                    Icon = 'bell',
+                })
+            end)
+
+            local Frame8 = Instance.new('Frame', Frame)
+
+            Frame8.Size = UDim2.new(1, -20, 0, 1)
+            Frame8.Position = UDim2.new(0, 10, 0, 120)
+            Frame8.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            Frame8.BorderSizePixel = 0
+
+            local ScrollingFrame = Instance.new('ScrollingFrame', Frame)
+
+            ScrollingFrame.Size = UDim2.new(1, -14, 1, -128)
+            ScrollingFrame.Position = UDim2.new(0, 7, 0, 126)
+            ScrollingFrame.BackgroundTransparency = 1
+            ScrollingFrame.BorderSizePixel = 0
+            ScrollingFrame.ScrollBarThickness = 4
+
+            local new = UDim2.new
+            local v727 = #u211 / 2
+
+            ScrollingFrame.CanvasSize = new(0, 0, 0, math.ceil(v727) * 118 + 10)
+
+            local UIGridLayout = Instance.new('UIGridLayout', ScrollingFrame)
+
+            UIGridLayout.CellSize = UDim2.new(0, 128, 0, 110)
+            UIGridLayout.CellPadding = UDim2.new(0, 8, 0, 8)
+            UIGridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+            for i, v in ipairs(u211)do
+                local v731 = id == v.id
+                local TextButton8 = Instance.new('TextButton', ScrollingFrame)
+
+                TextButton8.Size = UDim2.new(0, 128, 0, 110)
+                TextButton8.BackgroundColor3 = v731 and Color3.fromRGB(55, 15, 15) or Color3.fromRGB(20, 20, 20)
+                TextButton8.Text = ''
+                TextButton8.AutoButtonColor = false
+                TextButton8.LayoutOrder = i
+                Instance.new('UICorner', TextButton8).CornerRadius = UDim.new(0, 8)
+
+                local UIStroke4 = Instance.new('UIStroke', TextButton8)
+
+                UIStroke4.Color = v731 and Color3.fromRGB(220, 38, 38) or Color3.fromRGB(50, 50, 50)
+                UIStroke4.Thickness = v731 and 1.8 or 1.2
+
+                local ImageLabel = Instance.new('ImageLabel', TextButton8)
+
+                ImageLabel.Size = UDim2.new(0, 58, 0, 58)
+                ImageLabel.AnchorPoint = Vector2.new(0.5, 0)
+                ImageLabel.Position = UDim2.new(0.5, 0, 0, 8)
+                ImageLabel.BackgroundTransparency = 1
+                ImageLabel.Image = 'rbxassetid://' .. v.id
+
+                local TextLabel8 = Instance.new('TextLabel', TextButton8)
+
+                TextLabel8.Size = UDim2.new(1, -6, 0, 28)
+                TextLabel8.Position = UDim2.new(0, 3, 1, -30)
+                TextLabel8.BackgroundTransparency = 1
+                TextLabel8.Text = v.name .. (v731 and ' \u{2713}' or '')
+                TextLabel8.TextColor3 = v731 and Color3.fromRGB(255, 80, 80) or Color3.fromRGB(200, 200, 200)
+                TextLabel8.Font = Enum.Font.GothamBold
+                TextLabel8.TextSize = 11
+                TextLabel8.TextWrapped = true
+
+                local MouseButton1Click7 = TextButton8.MouseButton1Click
+                local u737 = v
+                local u738 = ScreenGui
+
+                MouseButton1Click7:Connect(function()
+                    id = u737.id
+
+                    if u198 and u201 then
+                        u201.Image = 'rbxassetid://' .. u737.id
+                    end
+
+                    local v920 = 'Cursor: ' .. u737.name .. ' \u{2014} enable ShiftLock to see it!'
+
+                    u209:Notify({
+                        Title = 'CrystalHub',
+                        Content = tostring(v920),
+                        Duration = 3,
+                        Icon = 'bell',
+                    })
+                    u738:Destroy()
+                end)
+            end
+
+            u212(Frame)
+
+            return
+        end
+
+        RuzCursorPicker:Destroy()
+    end,
+})
 v301:Divider()
 v301:Paragraph({
     Title = 'Graphics',
