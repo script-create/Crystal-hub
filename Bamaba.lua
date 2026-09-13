@@ -3957,6 +3957,14 @@ do
     local function updatePlayerESP()
         if not CHVisuals.ESP.Enabled then
             removeAllPlayerESP()
+            for _, player in ipairs(VisualsPlayers:GetPlayers()) do
+                if player ~= VisualsLocalPlayer and player.Character then
+                    local highlight = player.Character:FindFirstChild('CrystalHub_VisualESP')
+                    if highlight then
+                        highlight:Destroy()
+                    end
+                end
+            end
             return
         end
 
@@ -4091,7 +4099,7 @@ do
         end,
     })
 
-    v302:Colorpicker({
+    v302:ColorPicker({
         Title = 'ESP Box Color',
         Default = CHVisuals.ESP.BoxColor,
         Callback = function(value)
@@ -4107,7 +4115,7 @@ do
         end,
     })
 
-    v302:Colorpicker({
+    v302:ColorPicker({
         Title = 'ESP Name Color',
         Default = CHVisuals.ESP.NameColor,
         Callback = function(value)
@@ -4123,7 +4131,7 @@ do
         end,
     })
 
-    v302:Colorpicker({
+    v302:ColorPicker({
         Title = 'Health Full Color',
         Default = CHVisuals.ESP.HealthFullColor,
         Callback = function(value)
@@ -4131,7 +4139,7 @@ do
         end,
     })
 
-    v302:Colorpicker({
+    v302:ColorPicker({
         Title = 'Health Empty Color',
         Default = CHVisuals.ESP.HealthEmptyColor,
         Callback = function(value)
@@ -4155,7 +4163,7 @@ do
         end,
     })
 
-    v302:Colorpicker({
+    v302:ColorPicker({
         Title = 'ESP Highlight Color',
         Default = CHVisuals.ESP.HighlightColor,
         Callback = function(value)
@@ -4164,6 +4172,7 @@ do
     })
 
     --// World -------------------------------------------------------
+    VisualsTab:Divider()
     VisualsTab:Paragraph({
         Title = 'World',
         Content = 'Lighting controls with full restoration when disabled.',
@@ -4202,7 +4211,7 @@ do
         end,
     })
 
-    VisualsTab:Colorpicker({
+    VisualsTab:ColorPicker({
         Title = 'Ambient Color',
         Default = CHVisuals.World.Ambient,
         Callback = function(value)
@@ -4210,7 +4219,7 @@ do
         end,
     })
 
-    VisualsTab:Colorpicker({
+    VisualsTab:ColorPicker({
         Title = 'Outdoor Ambient',
         Default = CHVisuals.World.OutdoorAmbient,
         Callback = function(value)
@@ -4218,7 +4227,7 @@ do
         end,
     })
 
-    VisualsTab:Colorpicker({
+    VisualsTab:ColorPicker({
         Title = 'Fog Color',
         Default = CHVisuals.World.FogColor,
         Callback = function(value)
@@ -4291,233 +4300,8 @@ do
         end,
     })
 
-    --// Extra player visuals ---------------------------------------
-    local ExtraESP = {
-        MaterialEnabled = false,
-        Material = 'Neon',
-        MaterialColor = Color3.fromRGB(255, 255, 255),
-        HighlightEnabled = false,
-        HighlightFillColor = Color3.fromRGB(0, 0, 0),
-        HighlightOutlineColor = Color3.fromRGB(0, 0, 0),
-    }
-
-    local extraESPOriginals = {}
-
-    local materialNames = {
-        'Neon', 'ForceField', 'Plastic', 'SmoothPlastic', 'Wood', 'WoodPlanks',
-        'Marble', 'Slate', 'Concrete', 'Granite', 'Brick', 'Pebble', 'Cobblestone',
-        'Rock', 'DiamondPlate', 'Metal', 'CorrodedMetal', 'Foil', 'Grass', 'Sand',
-        'Fabric', 'Ice', 'Glass', 'Asphalt', 'LeafyGrass', 'Salt', 'Snow', 'Mud',
-        'Ground', 'Basalt', 'CrackedLava',
-    }
-
-    local function rememberExtraESPCharacter(character)
-        if extraESPOriginals[character] then
-            return
-        end
-        local snapshot = {}
-        for _, obj in ipairs(character:GetDescendants()) do
-            if obj:IsA('BasePart') then
-                snapshot[obj] = { Material = obj.Material, Color = obj.Color }
-            end
-        end
-        extraESPOriginals[character] = snapshot
-    end
-
-    local function restoreExtraESPCharacter(character)
-        local snapshot = extraESPOriginals[character]
-        if not snapshot then return end
-        for part, data in pairs(snapshot) do
-            if part and part.Parent then
-                part.Material = data.Material
-                part.Color = data.Color
-            end
-        end
-        extraESPOriginals[character] = nil
-    end
-
-    local function updateExtraESP()
-        for _, player in ipairs(VisualsPlayers:GetPlayers()) do
-            if player ~= VisualsLocalPlayer then
-                local character = player.Character
-                if character then
-                    if ExtraESP.MaterialEnabled then
-                        rememberExtraESPCharacter(character)
-                        local material = Enum.Material[ExtraESP.Material] or Enum.Material.Neon
-                        for _, obj in ipairs(character:GetDescendants()) do
-                            if obj:IsA('BasePart') then
-                                obj.Material = material
-                                obj.Color = ExtraESP.MaterialColor
-                            end
-                        end
-                    elseif extraESPOriginals[character] then
-                        restoreExtraESPCharacter(character)
-                    end
-
-                    local highlight = character:FindFirstChild('CrystalHub_ExtraHighlight')
-                    if ExtraESP.HighlightEnabled then
-                        if not highlight then
-                            highlight = Instance.new('Highlight')
-                            highlight.Name = 'CrystalHub_ExtraHighlight'
-                            highlight.Parent = character
-                        end
-                        highlight.FillColor = ExtraESP.HighlightFillColor
-                        highlight.OutlineColor = ExtraESP.HighlightOutlineColor
-                        highlight.FillTransparency = 0
-                        highlight.OutlineTransparency = 0
-                        highlight.Enabled = true
-                    elseif highlight then
-                        highlight:Destroy()
-                    end
-                end
-            end
-        end
-    end
-
-    VisualsTab:Paragraph({
-        Title = 'Extra Player Visuals',
-        Content = 'Additional player material and highlight effects.',
-    })
-
-    VisualsTab:Toggle({
-        Title = 'Player Material',
-        Default = false,
-        Callback = function(value)
-            ExtraESP.MaterialEnabled = value
-            if not value then
-                for character in pairs(extraESPOriginals) do
-                    restoreExtraESPCharacter(character)
-                end
-            end
-        end,
-    })
-
-    VisualsTab:Dropdown({
-        Title = 'Player Material',
-        Values = materialNames,
-        Value = ExtraESP.Material,
-        Callback = function(value)
-            ExtraESP.Material = value
-        end,
-    })
-
-    VisualsTab:Colorpicker({
-        Title = 'Player Material Color',
-        Default = ExtraESP.MaterialColor,
-        Callback = function(value)
-            ExtraESP.MaterialColor = value
-        end,
-    })
-
-    VisualsTab:Toggle({
-        Title = 'Player Highlight',
-        Default = false,
-        Callback = function(value)
-            ExtraESP.HighlightEnabled = value
-        end,
-    })
-
-    VisualsTab:Colorpicker({
-        Title = 'Highlight Fill',
-        Default = ExtraESP.HighlightFillColor,
-        Callback = function(value)
-            ExtraESP.HighlightFillColor = value
-        end,
-    })
-
-    VisualsTab:Colorpicker({
-        Title = 'Highlight Outline',
-        Default = ExtraESP.HighlightOutlineColor,
-        Callback = function(value)
-            ExtraESP.HighlightOutlineColor = value
-        end,
-    })
-
-    --// Walk steps --------------------------------------------------
-    local WalkSteps = {
-        Enabled = false,
-        Rate = 0.5,
-        Size = 5,
-        Color = Color3.fromRGB(255, 255, 255),
-    }
-
-    local lastWalkStep = 0
-
-    local function spawnWalkStep()
-        local character = VisualsLocalPlayer.Character
-        local root = character and character:FindFirstChild('HumanoidRootPart')
-        if not root then return end
-
-        local now = os.clock()
-        if now - lastWalkStep < WalkSteps.Rate then return end
-        lastWalkStep = now
-
-        local part = Instance.new('Part')
-        part.Name = 'CrystalHub_WalkStep'
-        part.Anchored = true
-        part.CanCollide = false
-        part.CanQuery = false
-        part.CanTouch = false
-        part.Material = Enum.Material.Neon
-        part.Color = WalkSteps.Color
-        part.Transparency = 0.15
-        part.Size = Vector3.new(
-            math.max(0.15, WalkSteps.Size * 0.35),
-            0.08,
-            math.max(0.15, WalkSteps.Size * 0.6)
-        )
-        part.CFrame = root.CFrame * CFrame.new(
-            math.random(-8, 8) / 10,
-            -2.6,
-            math.random(3, 10) / 10
-        )
-        part.Parent = workspace
-
-        task.delay(1.25, function()
-            safeDestroy(part)
-        end)
-    end
-
-    VisualsTab:Paragraph({
-        Title = 'Walk Steps',
-        Content = 'Leaves small visual steps behind your character while moving.',
-    })
-
-    VisualsTab:Toggle({
-        Title = 'Walk Steps',
-        Default = false,
-        Callback = function(value)
-            WalkSteps.Enabled = value
-        end,
-    })
-
-    VisualsTab:Colorpicker({
-        Title = 'Walk Steps Color',
-        Default = WalkSteps.Color,
-        Callback = function(value)
-            WalkSteps.Color = value
-        end,
-    })
-
-    VisualsTab:Slider({
-        Title = 'Walk Steps Rate',
-        Step = 0.1,
-        Value = { Min = 0.1, Max = 3, Default = WalkSteps.Rate },
-        Callback = function(value)
-            WalkSteps.Rate = math.clamp(tonumber(value) or 0.5, 0.1, 3)
-        end,
-    })
-
-    VisualsTab:Slider({
-        Title = 'Walk Steps Size',
-        Step = 0.1,
-        Value = { Min = 1, Max = 10, Default = WalkSteps.Size },
-        Callback = function(value)
-            WalkSteps.Size = math.clamp(tonumber(value) or 5, 1, 10)
-        end,
-    })
-
     --// Self visuals ------------------------------------------------
+    VisualsTab:Divider()
     local function getCurrentCharacter()
         return VisualsLocalPlayer.Character
     end
@@ -4665,7 +4449,7 @@ do
         end,
     })
 
-    VisualsTab:Colorpicker({
+    VisualsTab:ColorPicker({
         Title = 'Character Chams Color',
         Default = CHVisuals.Self.CharacterColor,
         Callback = function(value)
@@ -4687,7 +4471,7 @@ do
         end,
     })
 
-    VisualsTab:Colorpicker({
+    VisualsTab:ColorPicker({
         Title = 'Tool Color',
         Default = CHVisuals.Self.ToolColor,
         Callback = function(value)
@@ -4704,7 +4488,7 @@ do
         end,
     })
 
-    VisualsTab:Colorpicker({
+    VisualsTab:ColorPicker({
         Title = 'Aura Color',
         Default = CHVisuals.Self.AuraColor,
         Callback = function(value)
@@ -4731,352 +4515,32 @@ do
         end
     end)
 
+    -- One update loop keeps all visual state synchronized and prevents
+    -- several independent Heartbeat/RenderStepped loops from fighting.
+    VisualsRunService.RenderStepped:Connect(function()
+        updatePlayerESP()
 
-    --// Moved from Main: Skybox / Crosshair / Cursor / Graphics / FOV
-VisualsTab:Divider()
-VisualsTab:Paragraph({
-    Title = 'Skybox',
-    Content = 'Click the button below to open the visual skybox picker.\nSelecting a preset applies it instantly.',
-})
-VisualsTab:Button({
-    Title = 'Open Skybox Picker',
-    Description = 'Color preview list \u{2014} click to apply instantly',
-    Callback = function()
-        local RuzSkyboxPicker = game.CoreGui:FindFirstChild('RuzSkyboxPicker')
-
-        if not RuzSkyboxPicker then
-            local ScreenGui = Instance.new('ScreenGui', game.CoreGui)
-
-            ScreenGui.Name = 'RuzSkyboxPicker'
-            ScreenGui.ResetOnSpawn = false
-            ScreenGui.DisplayOrder = 62
-
-            local Frame = Instance.new('Frame', ScreenGui)
-
-            Frame.Size = UDim2.new(0, 310, 0, 420)
-            Frame.Position = UDim2.new(0.5, -155, 0.04, 0)
-            Frame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-            Frame.BackgroundTransparency = 0.06
-            Frame.BorderSizePixel = 0
-            Instance.new('UICorner', Frame).CornerRadius = UDim.new(0, 12)
-
-            local UIStroke = Instance.new('UIStroke', Frame)
-
-            UIStroke.Color = Color3.fromRGB(220, 38, 38)
-            UIStroke.Thickness = 1.5
-
-            local TextLabel = Instance.new('TextLabel', Frame)
-
-            TextLabel.Size = UDim2.new(1, -44, 0, 38)
-            TextLabel.Position = UDim2.new(0, 12, 0, 0)
-            TextLabel.BackgroundTransparency = 1
-            TextLabel.Text = 'CrystalHub  \u{2014}  Skybox Picker'
-            TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-            TextLabel.Font = Enum.Font.GothamBold
-            TextLabel.TextSize = 14
-            TextLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-            local TextButton = Instance.new('TextButton', Frame)
-
-            TextButton.Size = UDim2.new(0, 28, 0, 28)
-            TextButton.Position = UDim2.new(1, -34, 0, 5)
-            TextButton.BackgroundColor3 = Color3.fromRGB(180, 30, 30)
-            TextButton.Text = 'X'
-            TextButton.TextColor3 = Color3.new(1, 1, 1)
-            TextButton.Font = Enum.Font.GothamBold
-            TextButton.TextSize = 13
-            Instance.new('UICorner', TextButton).CornerRadius = UDim.new(0, 6)
-
-            local MouseButton1Click = TextButton.MouseButton1Click
-            local u633 = ScreenGui
-
-            MouseButton1Click:Connect(function()
-                u633:Destroy()
-            end)
-
-            local TextBox = Instance.new('TextBox', Frame)
-
-            TextBox.Size = UDim2.new(1, -20, 0, 34)
-            TextBox.Position = UDim2.new(0, 10, 0, 44)
-            TextBox.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-            TextBox.Text = ''
-            TextBox.PlaceholderText = 'Enter custom Skybox ID, press Enter...'
-            TextBox.TextColor3 = Color3.new(1, 1, 1)
-            TextBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
-            TextBox.Font = Enum.Font.Gotham
-            TextBox.TextSize = 13
-            TextBox.ClearTextOnFocus = false
-            Instance.new('UICorner', TextBox).CornerRadius = UDim.new(0, 6)
-            Instance.new('UIStroke', TextBox).Color = Color3.fromRGB(80, 80, 80)
-
-            local FocusLost = TextBox.FocusLost
-            local u636 = TextBox
-
-            FocusLost:Connect(function(p68)
-                if p68 and u636.Text ~= '' then
-                    u147(u636.Text)
-
-                    local v888 = 'Custom skybox applied \u{2014} ID: ' .. u636.Text
-
-                    u148:Notify({
-                        Title = 'CrystalHub',
-                        Content = tostring(v888),
-                        Duration = 3,
-                        Icon = 'bell',
-                    })
-
-                    u636.Text = ''
-                end
-            end)
-
-            local TextButton5 = Instance.new('TextButton', Frame)
-
-            TextButton5.Size = UDim2.new(1, -20, 0, 28)
-            TextButton5.Position = UDim2.new(0, 10, 0, 84)
-            TextButton5.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            TextButton5.Text = 'Restore Default Sky'
-            TextButton5.TextColor3 = Color3.fromRGB(200, 200, 200)
-            TextButton5.Font = Enum.Font.GothamBold
-            TextButton5.TextSize = 12
-            Instance.new('UICorner', TextButton5).CornerRadius = UDim.new(0, 6)
-
-            local MouseButton1Click4 = TextButton5.MouseButton1Click
-            local u639 = ScreenGui
-
-            MouseButton1Click4:Connect(function()
-                u149()
-                u639:Destroy()
-            end)
-
-            local Frame5 = Instance.new('Frame', Frame)
-
-            Frame5.Size = UDim2.new(1, -20, 0, 1)
-            Frame5.Position = UDim2.new(0, 10, 0, 118)
-            Frame5.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-            Frame5.BorderSizePixel = 0
-
-            local ScrollingFrame = Instance.new('ScrollingFrame', Frame)
-
-            ScrollingFrame.Size = UDim2.new(1, -14, 1, -126)
-            ScrollingFrame.Position = UDim2.new(0, 7, 0, 124)
-            ScrollingFrame.BackgroundTransparency = 1
-            ScrollingFrame.BorderSizePixel = 0
-            ScrollingFrame.ScrollBarThickness = 4
-            ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, #u150 * 56)
-
-            local UIListLayout = Instance.new('UIListLayout', ScrollingFrame)
-
-            UIListLayout.Padding = UDim.new(0, 6)
-            UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-            for i, v in ipairs(u150)do
-                local TextButton6 = Instance.new('TextButton', ScrollingFrame)
-
-                TextButton6.Size = UDim2.new(1, -8, 0, 48)
-                TextButton6.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-                TextButton6.Text = ''
-                TextButton6.AutoButtonColor = false
-                TextButton6.LayoutOrder = i
-                Instance.new('UICorner', TextButton6).CornerRadius = UDim.new(0, 8)
-
-                local UIStroke2 = Instance.new('UIStroke', TextButton6)
-
-                UIStroke2.Color = v.color
-                UIStroke2.Thickness = 1
-
-                local Frame6 = Instance.new('Frame', TextButton6)
-
-                Frame6.Size = UDim2.new(0, 34, 0, 34)
-                Frame6.Position = UDim2.new(0, 8, 0.5, -17)
-                Frame6.BackgroundColor3 = v.color
-                Frame6.BorderSizePixel = 0
-                Instance.new('UICorner', Frame6).CornerRadius = UDim.new(0, 6)
-
-                local TextLabel5 = Instance.new('TextLabel', TextButton6)
-
-                TextLabel5.Size = UDim2.new(1, -58, 0, 22)
-                TextLabel5.Position = UDim2.new(0, 50, 0, 6)
-                TextLabel5.BackgroundTransparency = 1
-                TextLabel5.Text = v.name
-                TextLabel5.TextColor3 = Color3.fromRGB(210, 210, 210)
-                TextLabel5.Font = Enum.Font.GothamBold
-                TextLabel5.TextSize = 14
-                TextLabel5.TextXAlignment = Enum.TextXAlignment.Left
-
-                local TextLabel6 = Instance.new('TextLabel', TextButton6)
-
-                TextLabel6.Size = UDim2.new(1, -58, 0, 14)
-                TextLabel6.Position = UDim2.new(0, 50, 1, -18)
-                TextLabel6.BackgroundTransparency = 1
-                TextLabel6.Text = 'ID: ' .. v.id
-                TextLabel6.TextColor3 = Color3.fromRGB(100, 100, 100)
-                TextLabel6.Font = Enum.Font.Gotham
-                TextLabel6.TextSize = 10
-                TextLabel6.TextXAlignment = Enum.TextXAlignment.Left
-
-                local MouseButton1Click5 = TextButton6.MouseButton1Click
-                local u651 = v
-                local u652 = ScrollingFrame
-                local u653 = UIStroke2
-                local u654 = TextButton6
-                local u655 = TextLabel5
-
-                MouseButton1Click5:Connect(function()
-                    u147(u651.id)
-
-                    local v889 = 'Skybox applied: ' .. u651.name
-
-                    u148:Notify({
-                        Title = 'CrystalHub',
-                        Content = tostring(v889),
-                        Duration = 3,
-                        Icon = 'bell',
-                    })
-
-                    for _, child in ipairs(u652:GetChildren())do
-                        if child:IsA('TextButton') then
-                            local UIStroke3 = child:FindFirstChildOfClass('UIStroke')
-
-                            if UIStroke3 then
-                                UIStroke3.Thickness = 1
-                                UIStroke3.Color = Color3.fromRGB(80, 80, 80)
-                            end
-
-                            child.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-                        end
-                    end
-
-                    u653.Thickness = 2
-                    u653.Color = Color3.fromRGB(220, 38, 38)
-                    u654.BackgroundColor3 = Color3.fromRGB(50, 15, 15)
-                    u655.TextColor3 = Color3.fromRGB(255, 80, 80)
-                end)
-            end
-
-            u151(Frame)
-
-            return
+        if CHVisuals.World.Enabled then
+            VisualsLighting.Ambient = CHVisuals.World.Ambient
+            VisualsLighting.OutdoorAmbient = CHVisuals.World.OutdoorAmbient
+            VisualsLighting.FogColor = CHVisuals.World.FogColor
+            VisualsLighting.FogStart = math.min(CHVisuals.World.FogStart, CHVisuals.World.FogEnd - 1)
+            VisualsLighting.FogEnd = math.max(CHVisuals.World.FogEnd, CHVisuals.World.FogStart + 1)
+            VisualsLighting.Brightness = CHVisuals.World.Brightness
+            VisualsLighting.ClockTime = CHVisuals.World.ClockTime
+            VisualsLighting.ExposureCompensation = CHVisuals.World.Exposure
         end
 
-        RuzSkyboxPicker:Destroy()
-    end,
-})
+        if CHVisuals.Self.CharacterChams then
+            applyCharacterChams()
+        end
 
-local t30 = {
-    Title = 'Restore Default Sky',
-}
-local u310 = v145
-
-function t30.Callback()
-    u310()
-end
-
-VisualsTab:Button(t30)
-VisualsTab:Divider()
-VisualsTab:Paragraph({
-    Title = 'Crosshair',
-    Content = 'Visible only when ShiftLock is active.\nSpin option is inside the picker.',
-})
-
-local t31 = {
-    Title = 'Enable Custom Crosshair',
-    Description = 'Visible only while ShiftLock is on',
-    Default = false,
-}
-
-local function u312()
-    local RuzCrosshairDisplay = game.CoreGui:FindFirstChild('RuzCrosshairDisplay')
-
-    if RuzCrosshairDisplay then
-        RuzCrosshairDisplay:Destroy()
-    end
-    if u202 then
-        u202:Disconnect()
-
-        u202 = nil
-    end
-
-    local ScreenGui = Instance.new('ScreenGui', game.CoreGui)
-
-    ScreenGui.Name = 'RuzCrosshairDisplay'
-    ScreenGui.ResetOnSpawn = false
-    ScreenGui.DisplayOrder = 25
-    ScreenGui.IgnoreGuiInset = true
-    u201 = Instance.new('ImageLabel', ScreenGui)
-    u201.AnchorPoint = Vector2.new(0.5, 0.5)
-    u201.Position = UDim2.new(0.5, 0, 0.5, 0)
-    u201.Size = UDim2.new(0, 42, 0, 42)
-    u201.BackgroundTransparency = 1
-    u201.Image = 'rbxassetid://' .. id
-    u201.ZIndex = 10
-    u201.Visible = false
-
-    u205.RenderStepped:Connect(function()
-        if u201 and u201.Parent then
-            local v914 = u206.MouseBehavior == Enum.MouseBehavior.LockCenter
-            local PlayerGui = u207:FindFirstChild('PlayerGui')
-
-            if PlayerGui then
-                local GameTopbar = PlayerGui:FindFirstChild('GameTopbar')
-
-                if GameTopbar and GameTopbar:FindFirstChild('Crosshair') then
-                    GameTopbar.Crosshair.Visible = false
-                end
-            end
-
-            local v917 = u198 and (v914 or false)
-
-            u201.Visible = v917
-            u206.MouseIconEnabled = not v917
-
-            return
+        if CHVisuals.Self.ToolMaterial then
+            updateToolMaterial()
         end
     end)
-    u208()
-end
 
-local u313 = v18
-local u314 = UserInputService
 
-function t31.Callback(p69)
-    u198 = p69
-
-    if not p69 then
-        local RuzCrosshairDisplay = game.CoreGui:FindFirstChild('RuzCrosshairDisplay')
-
-        if RuzCrosshairDisplay then
-            RuzCrosshairDisplay:Destroy()
-
-            u201 = nil
-        end
-        if u202 then
-            u202:Disconnect()
-
-            u202 = nil
-        end
-
-        u314.MouseIconEnabled = true
-
-        u313:Notify({
-            Title = 'CrystalHub',
-            Content = tostring('Crosshair OFF'),
-            Duration = 3,
-            Icon = 'bell',
-        })
-
-        return
-    end
-
-    u312()
-    u313:Notify({
-        Title = 'CrystalHub',
-        Content = tostring('Crosshair ON \u{2014} enable ShiftLock to see it!'),
-        Duration = 3,
-        Icon = 'bell',
-    })
-end
-
-VisualsTab:Toggle(t31)
 VisualsTab:Button({
     Title = 'Open Cursor Picker',
     Description = 'Visual grid with spin toggle \u{2014} click to apply',
@@ -5309,277 +4773,43 @@ VisualsTab:Button({
         RuzCursorPicker:Destroy()
     end,
 })
+end
 
-VisualsTab:Divider()
-VisualsTab:Paragraph({
-    Title = 'Graphics',
-    Content = 'Low: removes textures, map looks flat, boosts FPS.\nHigh: Bloom, SunRays, enhanced lighting.',
-})
-
-local t32 = {
-    Title = 'Low Graphics (FPS Boost)',
-    Default = false,
+local t27 = {
+    Title = 'Show Gold Bomb',
+    Default = true,
 }
+local u304 = v232
 
-local function u316()
-    if u16 then
-        u16 = false
-        u173.Brightness = u174.Brightness
-        u173.GlobalShadows = u174.GlobalShadows
-        u173.Ambient = u174.Ambient
-        u173.OutdoorAmbient = u174.OutdoorAmbient
-
-        for _, child in pairs(u173:GetChildren())do
-            if child:IsA('BloomEffect') or child:IsA('SunRaysEffect') or child:IsA('ColorCorrectionEffect') then
-                child:Destroy()
-            end
-        end
-    end
-
-    u15 = true
-
-    pcall(function()
-        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-    end)
-    pcall(function()
-        setfpscap(9999)
-    end)
-
-    u173.GlobalShadows = false
-    u173.Brightness = 2
-
-    for _, descendant in ipairs(u175:GetDescendants())do
-        local _pcall = pcall
-        local u695 = descendant
-
-        pcall(function()
-            u176(u695)
-        end)
-    end
-
-    if u172 then
-        u172:Disconnect()
-    end
-
-    u172 = u175.DescendantAdded:Connect(function(descendant)
-        task.wait(0.1)
-
-        local u911 = descendant
-
-        pcall(function()
-            u176(u911)
-        end)
-    end)
-    u177.Visible = true
-
-    u178:Notify({
-        Title = 'CrystalHub',
-        Content = tostring('Low Graphics ON \u{2014} FPS boost active'),
-        Duration = 3,
-        Icon = 'bell',
-    })
+function t27.Callback(p56)
+    u304(p56)
 end
 
-local u317 = v183
+v301:Toggle(t27)
 
-function t32.Callback(p71)
-    if not p71 then
-        u317()
-
-        return
-    end
-
-    u316()
-end
-
-VisualsTab:Toggle(t32)
-
-local t33 = {
-    Title = 'High Graphics (Beautiful)',
-    Default = false,
+local t28 = {
+    Title = 'Show Normal Bomb',
+    Default = true,
 }
+local u306 = v239
 
-local function u319()
-    if u15 then
-        u184()
-    end
-
-    u16 = true
-
-    pcall(function()
-        settings().Rendering.QualityLevel = Enum.QualityLevel.Level21
-    end)
-
-    u185.GlobalShadows = true
-    u185.Brightness = 3.5
-    u185.Ambient = Color3.fromRGB(80, 80, 100)
-    u185.OutdoorAmbient = Color3.fromRGB(100, 110, 130)
-
-    local v701 = u185:FindFirstChildOfClass('BloomEffect') or Instance.new('BloomEffect', u185)
-
-    v701.Intensity = 0.6
-    v701.Size = 24
-    v701.Threshold = 0.95
-
-    local v702 = u185:FindFirstChildOfClass('SunRaysEffect') or Instance.new('SunRaysEffect', u185)
-
-    v702.Intensity = 0.25
-    v702.Spread = 1
-
-    local v703 = u185:FindFirstChildOfClass('ColorCorrectionEffect') or Instance.new('ColorCorrectionEffect', u185)
-
-    v703.Saturation = 0.2
-    v703.Contrast = 0.1
-    v703.Brightness = 0.05
-
-    u186:Notify({
-        Title = 'CrystalHub',
-        Content = tostring('High Graphics ON'),
-        Duration = 3,
-        Icon = 'bell',
-    })
-end
-local function u320()
-    u16 = false
-
-    pcall(function()
-        settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
-    end)
-
-    u187.Brightness = u188.Brightness
-    u187.GlobalShadows = u188.GlobalShadows
-    u187.Ambient = u188.Ambient
-    u187.OutdoorAmbient = u188.OutdoorAmbient
-
-    for _, child in pairs(u187:GetChildren())do
-        if child:IsA('BloomEffect') or child:IsA('SunRaysEffect') or child:IsA('ColorCorrectionEffect') then
-            child:Destroy()
-        end
-    end
-
-    u189:Notify({
-        Title = 'CrystalHub',
-        Content = tostring('High Graphics OFF'),
-        Duration = 3,
-        Icon = 'bell',
-    })
+function t28.Callback(p57)
+    u306(p57)
 end
 
-function t33.Callback(p72)
-    if not p72 then
-        u320()
+v301:Toggle(t28)
 
-        return
-    end
-
-    u319()
-end
-
-VisualsTab:Toggle(t33)
-
-local t34 = {
-    Title = 'FOV Slider',
-    Description = 'Mobile-friendly field of view selector',
+local t29 = {
+    Title = 'Show Shoot/Throw',
+    Default = true,
 }
-local u322 = v25
-local u323 = CurrentCamera
-local u324 = v18
+local u308 = v244
 
-function t34.Callback()
-    u322('Field of View', 30, 120, n3, 5, function(p73)
-        n3 = p73
-        u323.FieldOfView = p73
-    end, function()
-        n3 = 70
-        u323.FieldOfView = 70
-
-        u324:Notify({
-            Title = 'CrystalHub',
-            Content = tostring('FOV reset to 70'),
-            Duration = 3,
-            Icon = 'bell',
-        })
-    end)
+function t29.Callback(p58)
+    u308(p58)
 end
 
-VisualsTab:Button(t34)
-
-    -- One update loop keeps all visual state synchronized and prevents
-    -- several independent Heartbeat/RenderStepped loops from fighting.
-    VisualsRunService.RenderStepped:Connect(function()
-        updatePlayerESP()
-
-        if CHVisuals.World.Enabled then
-            VisualsLighting.Ambient = CHVisuals.World.Ambient
-            VisualsLighting.OutdoorAmbient = CHVisuals.World.OutdoorAmbient
-            VisualsLighting.FogColor = CHVisuals.World.FogColor
-            VisualsLighting.FogStart = math.min(CHVisuals.World.FogStart, CHVisuals.World.FogEnd - 1)
-            VisualsLighting.FogEnd = math.max(CHVisuals.World.FogEnd, CHVisuals.World.FogStart + 1)
-            VisualsLighting.Brightness = CHVisuals.World.Brightness
-            VisualsLighting.ClockTime = CHVisuals.World.ClockTime
-            VisualsLighting.ExposureCompensation = CHVisuals.World.Exposure
-        end
-
-        if CHVisuals.Self.CharacterChams then
-            applyCharacterChams()
-        end
-
-        if CHVisuals.Self.ToolMaterial then
-            updateToolMaterial()
-        end
-
-        updateExtraESP()
-
-        if WalkSteps.Enabled then
-            local character = VisualsLocalPlayer.Character
-            local humanoid = character and character:FindFirstChildOfClass('Humanoid')
-            if humanoid and humanoid.MoveDirection.Magnitude > 0.05 then
-                spawnWalkStep()
-            end
-        end
-    end)
-
-    v301:Paragraph({
-        Title = 'Auto-Loaded Buttons',
-        Content = 'Gold Bomb, Normal Bomb and Shoot/Throw are enabled by default.',
-    })
-
-    local t27 = {
-        Title = 'Show Gold Bomb',
-        Default = true,
-    }
-    local u304 = v232
-
-    function t27.Callback(p56)
-        u304(p56)
-    end
-
-    v301:Toggle(t27)
-
-    local t28 = {
-        Title = 'Show Normal Bomb',
-        Default = true,
-    }
-    local u306 = v239
-
-    function t28.Callback(p57)
-        u306(p57)
-    end
-
-    v301:Toggle(t28)
-
-    local t29 = {
-        Title = 'Show Shoot/Throw',
-        Default = true,
-    }
-    local u308 = v244
-
-    function t29.Callback(p58)
-        u308(p58)
-    end
-
-    v301:Toggle(t29)
-end
+v301:Toggle(t29)
 
 v301:Divider()
 v301:Paragraph({
@@ -5680,6 +4910,544 @@ v301:Toggle({
         u281(p67)
     end,
 })
+v301:Divider()
+v301:Paragraph({
+    Title = 'Skybox',
+    Content = 'Click the button below to open the visual skybox picker.\nSelecting a preset applies it instantly.',
+})
+v301:Button({
+    Title = 'Open Skybox Picker',
+    Description = 'Color preview list \u{2014} click to apply instantly',
+    Callback = function()
+        local RuzSkyboxPicker = game.CoreGui:FindFirstChild('RuzSkyboxPicker')
+
+        if not RuzSkyboxPicker then
+            local ScreenGui = Instance.new('ScreenGui', game.CoreGui)
+
+            ScreenGui.Name = 'RuzSkyboxPicker'
+            ScreenGui.ResetOnSpawn = false
+            ScreenGui.DisplayOrder = 62
+
+            local Frame = Instance.new('Frame', ScreenGui)
+
+            Frame.Size = UDim2.new(0, 310, 0, 420)
+            Frame.Position = UDim2.new(0.5, -155, 0.04, 0)
+            Frame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+            Frame.BackgroundTransparency = 0.06
+            Frame.BorderSizePixel = 0
+            Instance.new('UICorner', Frame).CornerRadius = UDim.new(0, 12)
+
+            local UIStroke = Instance.new('UIStroke', Frame)
+
+            UIStroke.Color = Color3.fromRGB(220, 38, 38)
+            UIStroke.Thickness = 1.5
+
+            local TextLabel = Instance.new('TextLabel', Frame)
+
+            TextLabel.Size = UDim2.new(1, -44, 0, 38)
+            TextLabel.Position = UDim2.new(0, 12, 0, 0)
+            TextLabel.BackgroundTransparency = 1
+            TextLabel.Text = 'CrystalHub  \u{2014}  Skybox Picker'
+            TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            TextLabel.Font = Enum.Font.GothamBold
+            TextLabel.TextSize = 14
+            TextLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+            local TextButton = Instance.new('TextButton', Frame)
+
+            TextButton.Size = UDim2.new(0, 28, 0, 28)
+            TextButton.Position = UDim2.new(1, -34, 0, 5)
+            TextButton.BackgroundColor3 = Color3.fromRGB(180, 30, 30)
+            TextButton.Text = 'X'
+            TextButton.TextColor3 = Color3.new(1, 1, 1)
+            TextButton.Font = Enum.Font.GothamBold
+            TextButton.TextSize = 13
+            Instance.new('UICorner', TextButton).CornerRadius = UDim.new(0, 6)
+
+            local MouseButton1Click = TextButton.MouseButton1Click
+            local u633 = ScreenGui
+
+            MouseButton1Click:Connect(function()
+                u633:Destroy()
+            end)
+
+            local TextBox = Instance.new('TextBox', Frame)
+
+            TextBox.Size = UDim2.new(1, -20, 0, 34)
+            TextBox.Position = UDim2.new(0, 10, 0, 44)
+            TextBox.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            TextBox.Text = ''
+            TextBox.PlaceholderText = 'Enter custom Skybox ID, press Enter...'
+            TextBox.TextColor3 = Color3.new(1, 1, 1)
+            TextBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
+            TextBox.Font = Enum.Font.Gotham
+            TextBox.TextSize = 13
+            TextBox.ClearTextOnFocus = false
+            Instance.new('UICorner', TextBox).CornerRadius = UDim.new(0, 6)
+            Instance.new('UIStroke', TextBox).Color = Color3.fromRGB(80, 80, 80)
+
+            local FocusLost = TextBox.FocusLost
+            local u636 = TextBox
+
+            FocusLost:Connect(function(p68)
+                if p68 and u636.Text ~= '' then
+                    u147(u636.Text)
+
+                    local v888 = 'Custom skybox applied \u{2014} ID: ' .. u636.Text
+
+                    u148:Notify({
+                        Title = 'CrystalHub',
+                        Content = tostring(v888),
+                        Duration = 3,
+                        Icon = 'bell',
+                    })
+
+                    u636.Text = ''
+                end
+            end)
+
+            local TextButton5 = Instance.new('TextButton', Frame)
+
+            TextButton5.Size = UDim2.new(1, -20, 0, 28)
+            TextButton5.Position = UDim2.new(0, 10, 0, 84)
+            TextButton5.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            TextButton5.Text = 'Restore Default Sky'
+            TextButton5.TextColor3 = Color3.fromRGB(200, 200, 200)
+            TextButton5.Font = Enum.Font.GothamBold
+            TextButton5.TextSize = 12
+            Instance.new('UICorner', TextButton5).CornerRadius = UDim.new(0, 6)
+
+            local MouseButton1Click4 = TextButton5.MouseButton1Click
+            local u639 = ScreenGui
+
+            MouseButton1Click4:Connect(function()
+                u149()
+                u639:Destroy()
+            end)
+
+            local Frame5 = Instance.new('Frame', Frame)
+
+            Frame5.Size = UDim2.new(1, -20, 0, 1)
+            Frame5.Position = UDim2.new(0, 10, 0, 118)
+            Frame5.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            Frame5.BorderSizePixel = 0
+
+            local ScrollingFrame = Instance.new('ScrollingFrame', Frame)
+
+            ScrollingFrame.Size = UDim2.new(1, -14, 1, -126)
+            ScrollingFrame.Position = UDim2.new(0, 7, 0, 124)
+            ScrollingFrame.BackgroundTransparency = 1
+            ScrollingFrame.BorderSizePixel = 0
+            ScrollingFrame.ScrollBarThickness = 4
+            ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, #u150 * 56)
+
+            local UIListLayout = Instance.new('UIListLayout', ScrollingFrame)
+
+            UIListLayout.Padding = UDim.new(0, 6)
+            UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+            for i, v in ipairs(u150)do
+                local TextButton6 = Instance.new('TextButton', ScrollingFrame)
+
+                TextButton6.Size = UDim2.new(1, -8, 0, 48)
+                TextButton6.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+                TextButton6.Text = ''
+                TextButton6.AutoButtonColor = false
+                TextButton6.LayoutOrder = i
+                Instance.new('UICorner', TextButton6).CornerRadius = UDim.new(0, 8)
+
+                local UIStroke2 = Instance.new('UIStroke', TextButton6)
+
+                UIStroke2.Color = v.color
+                UIStroke2.Thickness = 1
+
+                local Frame6 = Instance.new('Frame', TextButton6)
+
+                Frame6.Size = UDim2.new(0, 34, 0, 34)
+                Frame6.Position = UDim2.new(0, 8, 0.5, -17)
+                Frame6.BackgroundColor3 = v.color
+                Frame6.BorderSizePixel = 0
+                Instance.new('UICorner', Frame6).CornerRadius = UDim.new(0, 6)
+
+                local TextLabel5 = Instance.new('TextLabel', TextButton6)
+
+                TextLabel5.Size = UDim2.new(1, -58, 0, 22)
+                TextLabel5.Position = UDim2.new(0, 50, 0, 6)
+                TextLabel5.BackgroundTransparency = 1
+                TextLabel5.Text = v.name
+                TextLabel5.TextColor3 = Color3.fromRGB(210, 210, 210)
+                TextLabel5.Font = Enum.Font.GothamBold
+                TextLabel5.TextSize = 14
+                TextLabel5.TextXAlignment = Enum.TextXAlignment.Left
+
+                local TextLabel6 = Instance.new('TextLabel', TextButton6)
+
+                TextLabel6.Size = UDim2.new(1, -58, 0, 14)
+                TextLabel6.Position = UDim2.new(0, 50, 1, -18)
+                TextLabel6.BackgroundTransparency = 1
+                TextLabel6.Text = 'ID: ' .. v.id
+                TextLabel6.TextColor3 = Color3.fromRGB(100, 100, 100)
+                TextLabel6.Font = Enum.Font.Gotham
+                TextLabel6.TextSize = 10
+                TextLabel6.TextXAlignment = Enum.TextXAlignment.Left
+
+                local MouseButton1Click5 = TextButton6.MouseButton1Click
+                local u651 = v
+                local u652 = ScrollingFrame
+                local u653 = UIStroke2
+                local u654 = TextButton6
+                local u655 = TextLabel5
+
+                MouseButton1Click5:Connect(function()
+                    u147(u651.id)
+
+                    local v889 = 'Skybox applied: ' .. u651.name
+
+                    u148:Notify({
+                        Title = 'CrystalHub',
+                        Content = tostring(v889),
+                        Duration = 3,
+                        Icon = 'bell',
+                    })
+
+                    for _, child in ipairs(u652:GetChildren())do
+                        if child:IsA('TextButton') then
+                            local UIStroke3 = child:FindFirstChildOfClass('UIStroke')
+
+                            if UIStroke3 then
+                                UIStroke3.Thickness = 1
+                                UIStroke3.Color = Color3.fromRGB(80, 80, 80)
+                            end
+
+                            child.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+                        end
+                    end
+
+                    u653.Thickness = 2
+                    u653.Color = Color3.fromRGB(220, 38, 38)
+                    u654.BackgroundColor3 = Color3.fromRGB(50, 15, 15)
+                    u655.TextColor3 = Color3.fromRGB(255, 80, 80)
+                end)
+            end
+
+            u151(Frame)
+
+            return
+        end
+
+        RuzSkyboxPicker:Destroy()
+    end,
+})
+
+local t30 = {
+    Title = 'Restore Default Sky',
+}
+local u310 = v145
+
+function t30.Callback()
+    u310()
+end
+
+v301:Button(t30)
+v301:Divider()
+v301:Paragraph({
+    Title = 'Crosshair',
+    Content = 'Visible only when ShiftLock is active.\nSpin option is inside the picker.',
+})
+
+local t31 = {
+    Title = 'Enable Custom Crosshair',
+    Description = 'Visible only while ShiftLock is on',
+    Default = false,
+}
+
+local function u312()
+    local RuzCrosshairDisplay = game.CoreGui:FindFirstChild('RuzCrosshairDisplay')
+
+    if RuzCrosshairDisplay then
+        RuzCrosshairDisplay:Destroy()
+    end
+    if u202 then
+        u202:Disconnect()
+
+        u202 = nil
+    end
+
+    local ScreenGui = Instance.new('ScreenGui', game.CoreGui)
+
+    ScreenGui.Name = 'RuzCrosshairDisplay'
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.DisplayOrder = 25
+    ScreenGui.IgnoreGuiInset = true
+    u201 = Instance.new('ImageLabel', ScreenGui)
+    u201.AnchorPoint = Vector2.new(0.5, 0.5)
+    u201.Position = UDim2.new(0.5, 0, 0.5, 0)
+    u201.Size = UDim2.new(0, 42, 0, 42)
+    u201.BackgroundTransparency = 1
+    u201.Image = 'rbxassetid://' .. id
+    u201.ZIndex = 10
+    u201.Visible = false
+
+    u205.RenderStepped:Connect(function()
+        if u201 and u201.Parent then
+            local v914 = u206.MouseBehavior == Enum.MouseBehavior.LockCenter
+            local PlayerGui = u207:FindFirstChild('PlayerGui')
+
+            if PlayerGui then
+                local GameTopbar = PlayerGui:FindFirstChild('GameTopbar')
+
+                if GameTopbar and GameTopbar:FindFirstChild('Crosshair') then
+                    GameTopbar.Crosshair.Visible = false
+                end
+            end
+
+            local v917 = u198 and (v914 or false)
+
+            u201.Visible = v917
+            u206.MouseIconEnabled = not v917
+
+            return
+        end
+    end)
+    u208()
+end
+
+local u313 = v18
+local u314 = UserInputService
+
+function t31.Callback(p69)
+    u198 = p69
+
+    if not p69 then
+        local RuzCrosshairDisplay = game.CoreGui:FindFirstChild('RuzCrosshairDisplay')
+
+        if RuzCrosshairDisplay then
+            RuzCrosshairDisplay:Destroy()
+
+            u201 = nil
+        end
+        if u202 then
+            u202:Disconnect()
+
+            u202 = nil
+        end
+
+        u314.MouseIconEnabled = true
+
+        u313:Notify({
+            Title = 'CrystalHub',
+            Content = tostring('Crosshair OFF'),
+            Duration = 3,
+            Icon = 'bell',
+        })
+
+        return
+    end
+
+    u312()
+    u313:Notify({
+        Title = 'CrystalHub',
+        Content = tostring('Crosshair ON \u{2014} enable ShiftLock to see it!'),
+        Duration = 3,
+        Icon = 'bell',
+    })
+end
+
+v301:Toggle(t31)
+
+v301:Divider()
+v301:Paragraph({
+    Title = 'Graphics',
+    Content = 'Low: removes textures, map looks flat, boosts FPS.\nHigh: Bloom, SunRays, enhanced lighting.',
+})
+
+local t32 = {
+    Title = 'Low Graphics (FPS Boost)',
+    Default = false,
+}
+
+local function u316()
+    if u16 then
+        u16 = false
+        u173.Brightness = u174.Brightness
+        u173.GlobalShadows = u174.GlobalShadows
+        u173.Ambient = u174.Ambient
+        u173.OutdoorAmbient = u174.OutdoorAmbient
+
+        for _, child in pairs(u173:GetChildren())do
+            if child:IsA('BloomEffect') or child:IsA('SunRaysEffect') or child:IsA('ColorCorrectionEffect') then
+                child:Destroy()
+            end
+        end
+    end
+
+    u15 = true
+
+    pcall(function()
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+    end)
+    pcall(function()
+        setfpscap(9999)
+    end)
+
+    u173.GlobalShadows = false
+    u173.Brightness = 2
+
+    for _, descendant in ipairs(u175:GetDescendants())do
+        local _pcall = pcall
+        local u695 = descendant
+
+        pcall(function()
+            u176(u695)
+        end)
+    end
+
+    if u172 then
+        u172:Disconnect()
+    end
+
+    u172 = u175.DescendantAdded:Connect(function(descendant)
+        task.wait(0.1)
+
+        local u911 = descendant
+
+        pcall(function()
+            u176(u911)
+        end)
+    end)
+    u177.Visible = true
+
+    u178:Notify({
+        Title = 'CrystalHub',
+        Content = tostring('Low Graphics ON \u{2014} FPS boost active'),
+        Duration = 3,
+        Icon = 'bell',
+    })
+end
+
+local u317 = v183
+
+function t32.Callback(p71)
+    if not p71 then
+        u317()
+
+        return
+    end
+
+    u316()
+end
+
+v301:Toggle(t32)
+
+local t33 = {
+    Title = 'High Graphics (Beautiful)',
+    Default = false,
+}
+
+local function u319()
+    if u15 then
+        u184()
+    end
+
+    u16 = true
+
+    pcall(function()
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level21
+    end)
+
+    u185.GlobalShadows = true
+    u185.Brightness = 3.5
+    u185.Ambient = Color3.fromRGB(80, 80, 100)
+    u185.OutdoorAmbient = Color3.fromRGB(100, 110, 130)
+
+    local v701 = u185:FindFirstChildOfClass('BloomEffect') or Instance.new('BloomEffect', u185)
+
+    v701.Intensity = 0.6
+    v701.Size = 24
+    v701.Threshold = 0.95
+
+    local v702 = u185:FindFirstChildOfClass('SunRaysEffect') or Instance.new('SunRaysEffect', u185)
+
+    v702.Intensity = 0.25
+    v702.Spread = 1
+
+    local v703 = u185:FindFirstChildOfClass('ColorCorrectionEffect') or Instance.new('ColorCorrectionEffect', u185)
+
+    v703.Saturation = 0.2
+    v703.Contrast = 0.1
+    v703.Brightness = 0.05
+
+    u186:Notify({
+        Title = 'CrystalHub',
+        Content = tostring('High Graphics ON'),
+        Duration = 3,
+        Icon = 'bell',
+    })
+end
+local function u320()
+    u16 = false
+
+    pcall(function()
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
+    end)
+
+    u187.Brightness = u188.Brightness
+    u187.GlobalShadows = u188.GlobalShadows
+    u187.Ambient = u188.Ambient
+    u187.OutdoorAmbient = u188.OutdoorAmbient
+
+    for _, child in pairs(u187:GetChildren())do
+        if child:IsA('BloomEffect') or child:IsA('SunRaysEffect') or child:IsA('ColorCorrectionEffect') then
+            child:Destroy()
+        end
+    end
+
+    u189:Notify({
+        Title = 'CrystalHub',
+        Content = tostring('High Graphics OFF'),
+        Duration = 3,
+        Icon = 'bell',
+    })
+end
+
+function t33.Callback(p72)
+    if not p72 then
+        u320()
+
+        return
+    end
+
+    u319()
+end
+
+v301:Toggle(t33)
+
+local t34 = {
+    Title = 'FOV Slider',
+    Description = 'Mobile-friendly field of view selector',
+}
+local u322 = v25
+local u323 = CurrentCamera
+local u324 = v18
+
+function t34.Callback()
+    u322('Field of View', 30, 120, n3, 5, function(p73)
+        n3 = p73
+        u323.FieldOfView = p73
+    end, function()
+        n3 = 70
+        u323.FieldOfView = 70
+
+        u324:Notify({
+            Title = 'CrystalHub',
+            Content = tostring('FOV reset to 70'),
+            Duration = 3,
+            Icon = 'bell',
+        })
+    end)
+end
+
+v301:Button(t34)
 v301:Divider()
 v301:Paragraph({
     Title = 'Extra Scripts',
@@ -5961,7 +5729,7 @@ function t47.Callback(p85)
     u353.Murderer = p85
 end
 
-v302:Colorpicker(t47)
+v302:ColorPicker(t47)
 
 local t48 = {
     Title = 'Sheriff Color',
@@ -5973,7 +5741,7 @@ function t48.Callback(p86)
     u355.Sheriff = p86
 end
 
-v302:Colorpicker(t48)
+v302:ColorPicker(t48)
 
 local t49 = {
     Title = 'Hero Color',
@@ -5985,7 +5753,7 @@ function t49.Callback(p87)
     u357.Hero = p87
 end
 
-v302:Colorpicker(t49)
+v302:ColorPicker(t49)
 
 local t50 = {
     Title = 'Innocent Color',
@@ -5997,7 +5765,7 @@ function t50.Callback(p88)
     u359.Innocent = p88
 end
 
-v302:Colorpicker(t50)
+v302:ColorPicker(t50)
 task.wait(0.4)
 v232(true)
 v239(true)
