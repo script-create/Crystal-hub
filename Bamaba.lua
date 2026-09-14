@@ -3774,10 +3774,233 @@ do
         Icon = 'eye',
     })
 
-    VisualsTab:Paragraph({
-        Title = 'CrystalHub Visuals',
-        Content = 'Visual functions will be added here.',
-    })
+    -- ============================================================
+    --  AURA SYSTEM (WindUI native)
+    -- ============================================================
+    do
+        local _player  = game:GetService("Players").LocalPlayer
+        local _uis     = game:GetService("UserInputService")
+
+        local aura_ids = {
+            angel     = "97658130917593",
+            starlight = "134645216613107",
+            heavenly  = "139300897520961",
+            ribbon    = "132069507632161",
+            sakura    = "81755778619404",
+            wind      = "80694081850877",
+            flow      = "119913533725648",
+            star      = "73754563740680",
+        }
+        local aura_order = {"angel","starlight","heavenly","ribbon","sakura","wind","flow","star"}
+
+        local aura_cache     = {}
+        local aura_particles = {}
+        local aura_color     = Color3.fromRGB(133, 220, 255)
+        local aura_active    = false
+        local selected_auras = {}
+        for _, name in ipairs(aura_order) do selected_auras[name] = false end
+
+        -- ── Core helpers ──────────────────────────────────────
+        local function clearAura()
+            for _, p in ipairs(aura_particles) do pcall(function() p:Destroy() end) end
+            aura_particles = {}
+        end
+
+        local function loadAura(name)
+            if aura_cache[name] then return aura_cache[name] end
+            local id = aura_ids[name]; if not id then return nil end
+            local ok, res = pcall(game.GetObjects, game, "rbxassetid://"..id)
+            if ok and res and res[1] then aura_cache[name] = res[1]; return res[1] end
+        end
+
+        local function colorAura(model, color)
+            local seq = ColorSequence.new(color)
+            for _, d in ipairs(model:GetDescendants()) do
+                if d:IsA("PointLight") then d.Color = color
+                elseif d:IsA("ParticleEmitter") or d:IsA("Beam") or d:IsA("Trail") then d.Color = seq end
+            end
+        end
+
+        local function applyAura()
+            clearAura()
+            if not aura_active then return end
+            local char = _player.Character; if not char then return end
+            local real_char = char
+            if char.Parent ~= workspace then
+                real_char = nil
+                for _, obj in ipairs(workspace:GetChildren()) do
+                    if obj:IsA("Model") and obj.Name == _player.Name then
+                        local hrp = obj:FindFirstChild("HumanoidRootPart")
+                        if hrp and hrp:IsA("BasePart") then real_char = obj; break end
+                    end
+                end
+            end
+            if not real_char then return end
+            for _, name in ipairs(aura_order) do
+                if selected_auras[name] then
+                    local m = loadAura(name)
+                    if m then
+                        colorAura(m, aura_color)
+                        local cl = m:Clone()
+                        for _, part in ipairs(cl:GetChildren()) do
+                            local target = real_char:FindFirstChild(part.Name)
+                            if target and target:IsA("BasePart") then
+                                for _, child in ipairs(part:GetChildren()) do
+                                    child.Parent = target; table.insert(aura_particles, child)
+                                end
+                            end
+                        end
+                        cl:Destroy()
+                    end
+                end
+            end
+        end
+
+        _player.CharacterAdded:Connect(function()
+            task.wait(0.5); applyAura()
+        end)
+
+        -- ── WindUI Controls ───────────────────────────────────
+        VisualsTab:Paragraph({
+            Title = "Aura Selector",
+            Content = "Toggle auras below, pick color, then enable. Supports mixing multiple auras.",
+        })
+
+        -- Master ON/OFF
+        VisualsTab:Toggle({
+            Title = "Enable Auras",
+            Description = "Apply selected auras to your character",
+            Default = false,
+            Callback = function(state)
+                aura_active = state
+                applyAura()
+            end,
+        })
+
+        -- Individual aura toggles
+        VisualsTab:Paragraph({
+            Title = "Aura List",
+            Content = "Select one or more auras to stack on your character.",
+        })
+
+        for _, name in ipairs(aura_order) do
+            local auraName = name
+            VisualsTab:Toggle({
+                Title = auraName:sub(1,1):upper()..auraName:sub(2),
+                Default = false,
+                Callback = function(state)
+                    selected_auras[auraName] = state
+                    applyAura()
+                end,
+            })
+        end
+
+        -- Color (R G B sliders)
+        VisualsTab:Paragraph({
+            Title = "Aura Color",
+            Content = "Adjust RGB to change the color tint of all active auras.",
+        })
+
+        VisualsTab:Slider({
+            Title = "Red",
+            Description = "Red channel (0-255)",
+            Default = 133,
+            Min = 0,
+            Max = 255,
+            Rounding = 0,
+            Callback = function(val)
+                aura_color = Color3.fromRGB(val, aura_color.G*255, aura_color.B*255)
+                applyAura()
+            end,
+        })
+
+        VisualsTab:Slider({
+            Title = "Green",
+            Description = "Green channel (0-255)",
+            Default = 220,
+            Min = 0,
+            Max = 255,
+            Rounding = 0,
+            Callback = function(val)
+                aura_color = Color3.fromRGB(aura_color.R*255, val, aura_color.B*255)
+                applyAura()
+            end,
+        })
+
+        VisualsTab:Slider({
+            Title = "Blue",
+            Description = "Blue channel (0-255)",
+            Default = 255,
+            Min = 0,
+            Max = 255,
+            Rounding = 0,
+            Callback = function(val)
+                aura_color = Color3.fromRGB(aura_color.R*255, aura_color.G*255, val)
+                applyAura()
+            end,
+        })
+
+        -- Quick presets
+        VisualsTab:Paragraph({
+            Title = "Color Presets",
+            Content = "One-click color presets for your aura.",
+        })
+
+        local colorPresets = {"Default (Blue)","Red","Green","Gold","Purple","White","Rainbow (cycle)"}
+
+        VisualsTab:Dropdown({
+            Title = "Color Preset",
+            Description = "Pick a preset color",
+            Values = colorPresets,
+            Value = "Default (Blue)",
+            Callback = function(val)
+                if val == "Default (Blue)" then
+                    aura_color = Color3.fromRGB(133, 220, 255)
+                elseif val == "Red" then
+                    aura_color = Color3.fromRGB(255, 60, 60)
+                elseif val == "Green" then
+                    aura_color = Color3.fromRGB(60, 255, 100)
+                elseif val == "Gold" then
+                    aura_color = Color3.fromRGB(255, 200, 50)
+                elseif val == "Purple" then
+                    aura_color = Color3.fromRGB(180, 60, 255)
+                elseif val == "White" then
+                    aura_color = Color3.fromRGB(255, 255, 255)
+                elseif val == "Rainbow (cycle)" then
+                    task.spawn(function()
+                        local hue = 0
+                        while aura_active do
+                            hue = (hue + 0.005) % 1
+                            aura_color = Color3.fromHSV(hue, 1, 1)
+                            applyAura()
+                            task.wait(0.05)
+                        end
+                    end)
+                    return
+                end
+                applyAura()
+            end,
+        })
+
+        -- Clear button
+        VisualsTab:Button({
+            Title = "Clear All Auras",
+            Description = "Remove all aura effects from character",
+            Callback = function()
+                clearAura()
+                v18:Notify({
+                    Title = "CrystalHub",
+                    Content = "Auras cleared.",
+                    Duration = 2,
+                    Icon = "eye",
+                })
+            end,
+        })
+    end
+    -- ============================================================
+    --  END AURA SYSTEM
+    -- ============================================================
+
 
     v301:Paragraph({
         Title = 'Auto-Loaded Buttons',
