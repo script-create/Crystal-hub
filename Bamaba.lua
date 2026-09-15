@@ -1826,16 +1826,17 @@ do
                             u153:Disconnect()
                         end
 
-                        u153 = u154.Heartbeat:Connect(function()
+                        u153 = u154.Stepped:Connect(function()
                             if u152 then
-                                local Character = u155.Character
-                                local v894 = Character and Character:FindFirstChild('HumanoidRootPart')
-
-                                if v894 then
-                                    local AssemblyLinearVelocity = v894.AssemblyLinearVelocity
-
-                                    if AssemblyLinearVelocity.Magnitude > n1 then
-                                        v894.AssemblyLinearVelocity = AssemblyLinearVelocity.Unit * n1
+                                for _, plr in ipairs(Players:GetPlayers()) do
+                                    if plr ~= LocalPlayer and plr.Character then
+                                        for _, part in ipairs(plr.Character:GetDescendants()) do
+                                            if part:IsA('BasePart') then
+                                                pcall(function()
+                                                    part.CanCollide = false
+                                                end)
+                                            end
+                                        end
                                     end
                                 end
 
@@ -2981,6 +2982,11 @@ do
         Icon = 'target',
     })
 
+    local v304 = v300:Tab({
+        Title = 'Rage',
+        Icon = 'shield',
+    })
+
 
     -- CrystalHub AutoFarm
     do
@@ -2994,8 +3000,8 @@ do
             FarmMode = "Underground",
             TweenSpeed = 25,
             AutoReset = true,
-            AvoidMurder = true,
-            AntiAfkEnabled = true,
+            AvoidMurder = false,
+            AntiAfkEnabled = false,
             AntiAfkInterval = 120,
             UndergroundOffset = 4,
             MaxDistance = 600,
@@ -3576,12 +3582,174 @@ do
             end,
         })
 
-        if AFSettings.AntiAfkEnabled then
-            afStartAntiAfk()
-        end
+        -- Anti-AFK запускается только вручную через Toggle
     end
 
+    -- ═══════════════════════════════════════════
+    -- RAGE TAB: ANTI-AIM
+    -- ═══════════════════════════════════════════
+    do
+        local AA = {
+            velocity_desync        = false,
+            velocity_desync_type   = "high",
+            velocity_desync_rotate = false,
+            network_desync         = false,
+            fake_position          = false,
+        }
 
+        local AA_connection = nil
+        local AA_do_sleep    = false
+        local AA_sleep_tick  = tick()
+
+        local function aa_velocity_desync(hrp)
+            if not hrp then return end
+            local old_lv = hrp.AssemblyLinearVelocity
+            local old_av = hrp.AssemblyAngularVelocity
+            local v
+            local t = AA.velocity_desync_type
+            if t == "y high" then
+                v = Vector3.new(0, 16384, 0)
+            elseif t == "low" then
+                v = Vector3.new(
+                    math.random(1,2)==1 and -300 or 300,
+                    math.random(1,2)==1 and -300 or 300,
+                    math.random(1,2)==1 and -300 or 300
+                )
+            elseif t == "high" then
+                v = Vector3.new(
+                    math.random(1,2)==1 and -16384 or 16384,
+                    math.random(1,2)==1 and -14384 or 16384,
+                    math.random(1,2)==1 and -16384 or 16384
+                )
+            elseif t == "zero" then
+                v = Vector3.zero
+            else
+                v = Vector3.zero
+            end
+            hrp.AssemblyLinearVelocity = v
+            if AA.velocity_desync_rotate then
+                hrp.AssemblyAngularVelocity = v
+            end
+            RunService.RenderStepped:Wait()
+            hrp.AssemblyLinearVelocity = old_lv
+            hrp.AssemblyAngularVelocity = old_av
+        end
+
+        local function aa_network_desync(hrp)
+            if not hrp then return end
+            AA_do_sleep = not AA_do_sleep
+            pcall(function()
+                sethiddenproperty(hrp, "NetworkIsSleeping", AA_do_sleep)
+            end)
+        end
+
+        local function aa_fake_position(hrp)
+            if not hrp then return end
+            local old_cf = hrp.CFrame
+            hrp.CFrame = CFrame.new(
+                math.random(-2147483647, 2147483647),
+                math.random(-400, 2147483647),
+                math.random(-2147483647, 2147483647)
+            ) * CFrame.Angles(
+                math.rad(math.random(1, 359)),
+                math.rad(math.random(1, 359)),
+                math.rad(math.random(1, 359))
+            )
+            RunService.RenderStepped:Wait()
+            hrp.CFrame = old_cf
+        end
+
+        local function startAntiAim()
+            if AA_connection then return end
+            AA_connection = RunService.Stepped:Connect(function()
+                local char = LocalPlayer.Character
+                local hrp  = char and char:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+
+                if AA.velocity_desync then
+                    pcall(aa_velocity_desync, hrp)
+                end
+                if AA.network_desync then
+                    pcall(aa_network_desync, hrp)
+                end
+                if AA.fake_position then
+                    pcall(aa_fake_position, hrp)
+                end
+            end)
+        end
+
+        local function stopAntiAim()
+            if AA_connection then
+                AA_connection:Disconnect()
+                AA_connection = nil
+            end
+        end
+
+        local function refreshConnection()
+            local anyOn = AA.velocity_desync or AA.network_desync or AA.fake_position
+            if anyOn then
+                startAntiAim()
+            else
+                stopAntiAim()
+            end
+        end
+
+        v304:Paragraph({
+            Title = "Anti-Aim",
+            Content = "Desync-based anti-aim. Velocity Desync и Fake Position меняют физику на 1 кадр, затем возвращают. Network Desync переключает NetworkIsSleeping.",
+        })
+
+        v304:Toggle({
+            Title = "Velocity Desync",
+            Default = false,
+            Callback = function(val)
+                AA.velocity_desync = val
+                refreshConnection()
+                v18:Notify({ Title = "CrystalHub", Content = "Velocity Desync " .. (val and "ON" or "OFF"), Duration = 3, Icon = "bell" })
+            end,
+        })
+
+        v304:Dropdown({
+            Title = "Velocity Desync Type",
+            Values = { "high", "low", "y high", "zero" },
+            Value = "high",
+            Callback = function(val)
+                AA.velocity_desync_type = val
+            end,
+        })
+
+        v304:Toggle({
+            Title = "Velocity Rotate",
+            Default = false,
+            Callback = function(val)
+                AA.velocity_desync_rotate = val
+            end,
+        })
+
+        v304:Divider()
+
+        v304:Toggle({
+            Title = "Network Desync",
+            Default = false,
+            Callback = function(val)
+                AA.network_desync = val
+                refreshConnection()
+                v18:Notify({ Title = "CrystalHub", Content = "Network Desync " .. (val and "ON" or "OFF"), Duration = 3, Icon = "bell" })
+            end,
+        })
+
+        v304:Divider()
+
+        v304:Toggle({
+            Title = "Fake Position",
+            Default = false,
+            Callback = function(val)
+                AA.fake_position = val
+                refreshConnection()
+                v18:Notify({ Title = "CrystalHub", Content = "Fake Position " .. (val and "ON" or "OFF"), Duration = 3, Icon = "bell" })
+            end,
+        })
+    end
 
     v303:Paragraph({
         Title = 'Teleport Players',
@@ -5012,6 +5180,7 @@ v301:Dropdown({
         n1 = tonumber(p77) or 200
     end,
 })
+
 
 local t40 = {
     Title = 'Enable ESP',
